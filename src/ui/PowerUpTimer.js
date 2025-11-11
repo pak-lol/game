@@ -197,11 +197,12 @@ export class PowerUpTimer {
 
     /**
      * Animate the display
-     * @param {number} delta - Delta time in seconds
+     * @param {number} delta - Delta time in milliseconds
      */
     animate(delta) {
-        // Pulse animation
-        this.pulseScale += 0.02 * this.pulseDirection * delta * 60;
+        // Pulse animation (normalized to 60fps)
+        const normalizedDelta = delta / 16.67; // Normalize to 60fps frame time
+        this.pulseScale += 0.02 * this.pulseDirection * normalizedDelta;
 
         if (this.pulseScale > 1.1) {
             this.pulseScale = 1.1;

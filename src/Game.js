@@ -340,7 +340,8 @@ export class Game {
 
         // Update power-up timer
         if (this.powerUpTimer && this.powerUpTimer.isActive()) {
-            const stillActive = this.powerUpTimer.update(delta.deltaTime * 1000); // Convert to ms
+            // Use deltaMS for accurate millisecond timing
+            const stillActive = this.powerUpTimer.update(delta.deltaMS);
             if (!stillActive) {
                 // Timer finished, restore original speed
                 this.restoreSpeed();
