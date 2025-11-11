@@ -14,6 +14,8 @@ export class AssetLoader {
             console.log('✓ Weed leaf loaded');
             this.textures.weedLeafBrown = await PIXI.Assets.load('/weed-leaf-brown.svg');
             console.log('✓ Brown leaf loaded');
+            this.textures.snow = await PIXI.Assets.load('/assets/snow.svg');
+            console.log('✓ Snow loaded');
             this.textures.bucket = await PIXI.Assets.load('/assets/bucket.svg');
             console.log('✓ Bucket loaded');
             console.log('All assets loaded successfully!');

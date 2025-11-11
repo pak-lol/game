@@ -52,6 +52,7 @@ export const GAME_CONFIG = {
     itemTypes: {
         CHIMKE: 'chimke',
         VORINIO_DUMAI: 'vorinio_dumai',
+        VORINIO_SNIEGAS: 'vorinio_sniegas',
         BUCKET: 'bucket'
     }
 };
@@ -94,7 +95,7 @@ export const ITEM_CONFIG = {
 
 export const DIFFICULTY_CONFIG = {
     speedIncreasePerScore: 0.1, // Speed increase per point scored
-    maxSpeedMultiplier: 2.5, // Maximum speed multiplier (2.5x base speed)
+    maxSpeedMultiplier: 5, // Maximum speed multiplier (5x base speed)
     spawnRateIncrease: 2, // Decrease spawn interval by this amount per score
     minSpawnInterval: 25 // Minimum spawn interval
 };
@@ -107,10 +108,143 @@ export const PARTICLE_CONFIG = {
     fadeSpeed: 0.03
 };
 
+/**
+ * ITEMS CONFIGURATION
+ * Easy to add new items - just add a new entry here!
+ *
+ * Properties:
+ * - id: Unique identifier
+ * - nameKey: Translation key for display name
+ * - descriptionKey: Translation key for description (optional)
+ * - texture: Texture name from AssetLoader
+ * - scoreValue: Points awarded when caught (0 for bad items)
+ * - gameOver: If true, catching this item ends the game
+ * - rarity: Spawn weight (higher = more common)
+ * - color: Text label color
+ * - particleColor: Particle effect color when caught
+ * - haptic: Haptic feedback type ('light', 'medium', 'heavy', 'error', 'success')
+ */
+export const ITEMS_CONFIG = {
+    chimke: {
+        id: 'chimke',
+        nameKey: 'items.chimke',
+        descriptionKey: 'items.chimkeDesc',
+        texture: 'weedLeafBrown',
+        scoreValue: 0,
+        gameOver: true,
+        rarity: 60,
+        color: '#FF6B6B',
+        particleColor: '#FF6B6B',
+        haptic: 'error'
+    },
+    vorinio_dumai: {
+        id: 'vorinio_dumai',
+        nameKey: 'items.vorinioDumai',
+        descriptionKey: 'items.vorinioDumaiDesc',
+        texture: 'weedLeaf',
+        scoreValue: 3,
+        gameOver: false,
+        rarity: 30,
+        color: '#00FF00',
+        particleColor: '#4CAF50',
+        haptic: 'light'
+    },
+    vorinio_sniegas: {
+        id: 'vorinio_sniegas',
+        nameKey: 'items.vorinioSniegas',
+        descriptionKey: 'items.vorinioSniegasDesc',
+        texture: 'snow',
+        scoreValue: 5,
+        gameOver: false,
+        rarity: 10,
+        color: '#00FFFF',
+        particleColor: '#87CEEB',
+        haptic: 'medium'
+    }
+};
+
+/**
+ * POWER-UPS CONFIGURATION
+ * Easy to add new power-ups - just add a new entry here!
+ *
+ * Properties:
+ * - id: Unique identifier
+ * - nameKey: Translation key for display name
+ * - descriptionKey: Translation key for description
+ * - texture: Texture name from AssetLoader
+ * - icon: Emoji icon for display
+ * - rarity: Spawn weight (independent of items)
+ * - spawnChance: Probability to spawn (0.0 - 1.0)
+ * - color: Text label color
+ * - particleColor: Particle effect color
+ * - haptic: Haptic feedback type
+ * - duration: Effect duration in milliseconds
+ * - effectType: Type of effect ('speed_multiplier', 'score_multiplier', etc.)
+ * - effectValue: Value for the effect
+ */
+export const POWERUPS_CONFIG = {
+    bucket: {
+        id: 'bucket',
+        nameKey: 'powerups.bucket',
+        descriptionKey: 'powerups.bucketDescription',
+        texture: 'bucket',
+        icon: '🪣',
+        rarity: 5,
+        spawnChance: 0.05,
+        color: '#FFD700',
+        particleColor: '#FFD700',
+        haptic: 'success',
+        duration: 5000,
+        effectType: 'speed_multiplier',
+        effectValue: 0.5
+    }
+};
+
+/**
+ * Get total rarity weight for items
+ */
+export function getTotalItemRarity() {
+    return Object.values(ITEMS_CONFIG).reduce((sum, item) => sum + item.rarity, 0);
+}
+
+/**
+ * Get random item based on rarity weights
+ */
+export function getRandomItem() {
+    const totalWeight = getTotalItemRarity();
+    let random = Math.random() * totalWeight;
+
+    for (const item of Object.values(ITEMS_CONFIG)) {
+        random -= item.rarity;
+        if (random <= 0) {
+            return item;
+        }
+    }
+
+    // Fallback to first item
+    return Object.values(ITEMS_CONFIG)[0];
+}
+
+/**
+ * Get random power-up based on spawn chance
+ */
+export function getRandomPowerUp() {
+    const powerups = Object.values(POWERUPS_CONFIG);
+
+    for (const powerup of powerups) {
+        if (Math.random() < powerup.spawnChance) {
+            return powerup;
+        }
+    }
+
+    return null;
+}
+
+// Legacy config for backward compatibility
 export const POWERUP_CONFIG = {
     bucket: {
-        spawnChance: 0.05,  // 5% chance to spawn bucket instead of regular item
-        duration: 5000,     // 5 seconds in milliseconds
-        speedMultiplier: 0.5 // Slow down to 50% speed
+        spawnChance: POWERUPS_CONFIG.bucket.spawnChance,
+        duration: POWERUPS_CONFIG.bucket.duration,
+        speedMultiplier: POWERUPS_CONFIG.bucket.effectValue
     }
 };

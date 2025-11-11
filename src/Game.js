@@ -1,5 +1,14 @@
 import * as PIXI from 'pixi.js';
-import { GAME_CONFIG, DIFFICULTY_CONFIG, POWERUP_CONFIG, updateGameDimensions } from './config.js';
+import {
+    GAME_CONFIG,
+    DIFFICULTY_CONFIG,
+    POWERUP_CONFIG,
+    ITEMS_CONFIG,
+    POWERUPS_CONFIG,
+    getRandomItem,
+    getRandomPowerUp,
+    updateGameDimensions
+} from './config.js';
 import { AssetLoader } from './utils/AssetLoader.js';
 import { Player } from './entities/Player.js';
 import { FallingItem } from './entities/FallingItem.js';
@@ -8,6 +17,7 @@ import { ParticleSystem } from './systems/ParticleSystem.js';
 import { ScoreDisplay } from './ui/ScoreDisplay.js';
 import { SpeedDisplay } from './ui/SpeedDisplay.js';
 import { PowerUpTimer } from './ui/PowerUpTimer.js';
+import { ScorePopup } from './ui/ScorePopup.js';
 import { i18n } from './utils/i18n.js';
 import { GameStateManager, GameState } from './managers/GameStateManager.js';
 import { ScoreService } from './services/ScoreService.js';
@@ -36,9 +46,11 @@ export class Game {
         this.speedDisplay = null;
         this.powerUpTimer = null;
         this.fallingItems = [];
+        this.scorePopups = []; // Array of active score popups
 
         // Game state
         this.spawnTimer = 0;
+        this.scoreTimer = 0; // Timer for passive score per second
         this.gameLoopBound = null;
         this.currentSpeedMultiplier = 1.0;
         this.originalSpeedMultiplier = 1.0; // Store original speed before power-up
@@ -284,40 +296,28 @@ export class Game {
         this.powerUpTimer.addToStage(this.app.stage);
     }
 
+    /**
+     * Spawn a falling item or power-up
+     * Uses the new configuration system for easy extensibility
+     */
     spawnFallingItem() {
-        let randomType;
+        // Try to spawn a power-up first
+        const powerUp = getRandomPowerUp();
+
+        let itemConfig;
         let texture;
-        let label;
 
-        // 5% chance to spawn bucket power-up
-        const spawnBucket = Math.random() < POWERUP_CONFIG.bucket.spawnChance;
-
-        if (spawnBucket) {
-            randomType = GAME_CONFIG.itemTypes.BUCKET;
-            texture = this.assetLoader.getTexture('bucket');
-            label = i18n.t('powerups.bucket');
+        if (powerUp) {
+            // Spawn power-up
+            itemConfig = powerUp;
+            texture = this.assetLoader.getTexture(powerUp.texture);
         } else {
-            // Randomly choose between the two regular types
-            const regularTypes = [
-                GAME_CONFIG.itemTypes.CHIMKE,
-                GAME_CONFIG.itemTypes.VORINIO_DUMAI
-            ];
-            randomType = regularTypes[Math.floor(Math.random() * regularTypes.length)];
-
-            // Use different texture based on type
-            texture =
-                randomType === GAME_CONFIG.itemTypes.CHIMKE
-                    ? this.assetLoader.getTexture('weedLeafBrown')
-                    : this.assetLoader.getTexture('weedLeaf');
-
-            // Get translated label
-            label =
-                randomType === GAME_CONFIG.itemTypes.CHIMKE
-                    ? i18n.t('items.chimke')
-                    : i18n.t('items.vorinioDumai');
+            // Spawn regular item based on rarity weights
+            itemConfig = getRandomItem();
+            texture = this.assetLoader.getTexture(itemConfig.texture);
         }
 
-        const item = new FallingItem(texture, randomType, label, this.currentSpeedMultiplier);
+        const item = new FallingItem(texture, itemConfig, this.currentSpeedMultiplier);
 
         item.addToStage(this.app.stage);
         this.fallingItems.push(item);
@@ -348,6 +348,13 @@ export class Game {
             }
         }
 
+        // Add 1 score per second (passive scoring)
+        this.scoreTimer += delta.deltaMS; // deltaMS is in milliseconds
+        if (this.scoreTimer >= 1000) { // 1000ms = 1 second
+            this.scoreDisplay.increment();
+            this.scoreTimer -= 1000; // Subtract 1 second, keep remainder for precision
+        }
+
         // Spawn falling items
         this.spawnTimer += delta.deltaTime;
         if (this.spawnTimer > this.currentSpawnInterval) {
@@ -374,26 +381,59 @@ export class Game {
                 this.fallingItems.splice(i, 1);
             }
         }
+
+        // Update score popups
+        for (let i = this.scorePopups.length - 1; i >= 0; i--) {
+            const popup = this.scorePopups[i];
+            if (!popup || !popup.update) continue;
+
+            const stillActive = popup.update(delta.deltaTime);
+
+            if (!stillActive) {
+                popup.removeFromStage(this.app.stage);
+                popup.destroy();
+                this.scorePopups.splice(i, 1);
+            }
+        }
     }
 
+    /**
+     * Handle catching an item or power-up
+     * Now uses configuration system for easy extensibility
+     */
     handleItemCatch(item, index) {
         if (!item || !this.scoreDisplay) return;
 
         const position = item.getPosition();
-        const itemType = item.type;
+        const config = item.getConfig();
 
-        // Handle bucket power-up
-        if (itemType === GAME_CONFIG.itemTypes.BUCKET) {
-            this.handleBucketCatch(position);
+        // Check if this is a power-up
+        if (config.effectType) {
+            this.handlePowerUpCatch(item, position);
         }
-        // Increment score for "vorinio dumai"
-        else if (item.isScoreable()) {
-            this.scoreDisplay.increment();
-            this.particleSystem.createCatchEffect(position.x, position.y, '#4CAF50');
+        // Check if this is a game-over item
+        else if (item.isGameOver()) {
+            this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
 
-            // Haptic feedback for success
-            if (this.telegramService) {
-                this.telegramService.hapticFeedback('light');
+            // Haptic feedback
+            if (this.telegramService && config.haptic) {
+                this.telegramService.hapticFeedback(config.haptic);
+            }
+
+            this.gameOver();
+        }
+        // Handle scoreable items
+        else if (item.isScoreable()) {
+            const scoreValue = item.getScoreValue();
+            this.scoreDisplay.add(scoreValue);
+            this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+
+            // Create beautiful score popup
+            this.createScorePopup(position.x, position.y, scoreValue, config.color, i18n.t(config.nameKey));
+
+            // Haptic feedback
+            if (this.telegramService && config.haptic) {
+                this.telegramService.hapticFeedback(config.haptic);
             }
 
             // Increase difficulty (only if no power-up is active)
@@ -401,43 +441,63 @@ export class Game {
                 this.increaseDifficulty();
             }
         }
-        // Game over for catching "chimke"
-        else {
-            this.particleSystem.createCatchEffect(position.x, position.y, '#FF6B6B');
-
-            // Haptic feedback for error
-            if (this.telegramService) {
-                this.telegramService.hapticFeedback('error');
-            }
-
-            this.gameOver();
-        }
 
         item.removeFromStage(this.app.stage);
         this.fallingItems.splice(index, 1);
     }
 
     /**
-     * Handle catching bucket power-up
-     * @param {Object} position - Position where bucket was caught
+     * Create a beautiful score popup
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {number} scoreValue - Score value
+     * @param {string} color - Color of popup
+     * @param {string} itemName - Name of item
      */
-    handleBucketCatch(position) {
-        console.log('Bucket caught! Slowing down speed...');
+    createScorePopup(x, y, scoreValue, color, itemName) {
+        const popup = new ScorePopup(x, y, scoreValue, color, itemName);
+        popup.addToStage(this.app.stage);
+        this.scorePopups.push(popup);
+    }
 
-        // Create golden particle effect
-        this.particleSystem.createCatchEffect(position.x, position.y, '#FFD700');
+    /**
+     * Handle catching a power-up
+     * Now uses configuration system for any power-up type
+     * @param {FallingItem} item - The power-up item
+     * @param {Object} position - Position where power-up was caught
+     */
+    handlePowerUpCatch(item, position) {
+        const config = item.getConfig();
+        console.log(`Power-up caught: ${config.id}`);
 
-        // Haptic feedback for power-up
-        if (this.telegramService) {
-            this.telegramService.hapticFeedback('success');
+        // Create particle effect
+        this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+
+        // Haptic feedback
+        if (this.telegramService && config.haptic) {
+            this.telegramService.hapticFeedback(config.haptic);
         }
 
-        // Store current speed and slow down
+        // Apply effect based on type
+        if (config.effectType === 'speed_multiplier') {
+            this.applySpeedMultiplierEffect(config);
+        }
+        // Add more effect types here in the future
+        // else if (config.effectType === 'score_multiplier') { ... }
+        // else if (config.effectType === 'invincibility') { ... }
+    }
+
+    /**
+     * Apply speed multiplier power-up effect
+     * @param {Object} config - Power-up configuration
+     */
+    applySpeedMultiplierEffect(config) {
+        // Store current speed
         this.powerUpActive = true;
         this.originalSpeedMultiplier = this.currentSpeedMultiplier;
 
-        // Apply slowdown effect
-        this.currentSpeedMultiplier = Math.max(1.0, this.currentSpeedMultiplier * POWERUP_CONFIG.bucket.speedMultiplier);
+        // Apply effect
+        this.currentSpeedMultiplier = Math.max(1.0, this.currentSpeedMultiplier * config.effectValue);
 
         // Update all falling items with new speed
         this.updateFallingItemsSpeeds();
@@ -449,10 +509,10 @@ export class Game {
 
         // Start timer
         if (this.powerUpTimer) {
-            this.powerUpTimer.start('bucket', POWERUP_CONFIG.bucket.duration);
+            this.powerUpTimer.start(config.id, config.duration);
         }
 
-        console.log(`Speed reduced from ${this.originalSpeedMultiplier.toFixed(2)}x to ${this.currentSpeedMultiplier.toFixed(2)}x`);
+        console.log(`Speed changed from ${this.originalSpeedMultiplier.toFixed(2)}x to ${this.currentSpeedMultiplier.toFixed(2)}x for ${config.duration}ms`);
     }
 
     /**
@@ -544,6 +604,19 @@ export class Game {
     }
 
     /**
+     * Clear all score popups
+     */
+    clearScorePopups() {
+        for (const popup of this.scorePopups) {
+            if (popup && popup.removeFromStage) {
+                popup.removeFromStage(this.app.stage);
+                popup.destroy();
+            }
+        }
+        this.scorePopups = [];
+    }
+
+    /**
      * Show game over screen
      * @param {Object} scoreData - Score data with rank
      * @param {Array} leaderboard - Leaderboard entries
@@ -587,6 +660,9 @@ export class Game {
         // Clear falling items
         this.clearFallingItems();
 
+        // Clear score popups
+        this.clearScorePopups();
+
         // Clear stage
         if (this.app && this.app.stage) {
             this.app.stage.removeChildren();
@@ -608,9 +684,11 @@ export class Game {
      */
     resetGameState() {
         this.spawnTimer = 0;
+        this.scoreTimer = 0;
         this.currentSpeedMultiplier = 1.0;
         this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
         this.fallingItems = [];
+        this.scorePopups = [];
 
         // Create new score display
         this.scoreDisplay = new ScoreDisplay();

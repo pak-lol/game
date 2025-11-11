@@ -1,28 +1,35 @@
 import * as PIXI from 'pixi.js';
 import { GAME_CONFIG, ITEM_CONFIG } from '../config.js';
+import { i18n } from '../utils/i18n.js';
 
+/**
+ * FallingItem class - represents a falling item or power-up
+ * Now uses item configuration for easy extensibility
+ */
 export class FallingItem {
-    constructor(texture, type, label, speedMultiplier = 1.0) {
-        this.type = type;
+    /**
+     * @param {PIXI.Texture} texture - The texture to display
+     * @param {Object} itemConfig - Item configuration object from ITEMS_CONFIG or POWERUPS_CONFIG
+     * @param {number} speedMultiplier - Current game speed multiplier
+     */
+    constructor(texture, itemConfig, speedMultiplier = 1.0) {
+        this.itemConfig = itemConfig;
+        this.type = itemConfig.id;
         this.container = new PIXI.Container();
         this.speedMultiplier = speedMultiplier;
-        
+
         // Create sprite
         this.sprite = new PIXI.Sprite(texture);
         this.sprite.anchor.set(0.5, 0.5);
-        
+
         const scale =
             Math.random() * (ITEM_CONFIG.maxScale - ITEM_CONFIG.minScale) +
             ITEM_CONFIG.minScale;
         this.sprite.scale.set(scale);
-        
-        // Create text label with better visibility
-        const isGoodItem = type === GAME_CONFIG.itemTypes.VORINIO_DUMAI;
-        const isBucket = type === GAME_CONFIG.itemTypes.BUCKET;
 
-        let textColor = '#FF6B6B'; // Bad item (chimke)
-        if (isGoodItem) textColor = '#00FF00'; // Good item (vorinio dumai)
-        if (isBucket) textColor = '#FFD700'; // Power-up (bucket)
+        // Get label from item config
+        const label = i18n.t(itemConfig.nameKey);
+        const textColor = itemConfig.color;
 
         this.text = new PIXI.Text({
             text: label.toUpperCase(),
@@ -94,8 +101,36 @@ export class FallingItem {
         return { x: this.container.x, y: this.container.y };
     }
 
+    /**
+     * Check if this item gives score
+     * @returns {boolean}
+     */
     isScoreable() {
-        return this.type === GAME_CONFIG.itemTypes.VORINIO_DUMAI;
+        return this.itemConfig.scoreValue > 0;
+    }
+
+    /**
+     * Get the score value of this item
+     * @returns {number}
+     */
+    getScoreValue() {
+        return this.itemConfig.scoreValue || 0;
+    }
+
+    /**
+     * Check if catching this item ends the game
+     * @returns {boolean}
+     */
+    isGameOver() {
+        return this.itemConfig.gameOver || false;
+    }
+
+    /**
+     * Get item configuration
+     * @returns {Object}
+     */
+    getConfig() {
+        return this.itemConfig;
     }
 
     /**

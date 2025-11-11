@@ -39,6 +39,18 @@ export class PowerUpTimer {
         });
         this.container.addChild(this.labelText);
 
+        // Create description text
+        this.descriptionText = new PIXI.Text({
+            text: '',
+            style: {
+                fontFamily: 'Arial',
+                fontSize: 12,
+                fill: '#FFD700',
+                fontWeight: 'normal'
+            }
+        });
+        this.container.addChild(this.descriptionText);
+
         // Create timer text
         this.timerText = new PIXI.Text({
             text: '5.0',
@@ -70,23 +82,31 @@ export class PowerUpTimer {
 
     /**
      * Start power-up timer
-     * @param {string} type - Power-up type ('bucket')
+     * @param {string} powerUpId - Power-up ID from config
      * @param {number} duration - Duration in milliseconds
      */
-    start(type, duration) {
-        this.active = true;
-        this.powerUpType = type;
-        this.duration = duration;
-        this.elapsed = 0;
-        this.container.visible = true;
+    start(powerUpId, duration) {
+        // Import config dynamically
+        import('../config.js').then(({ POWERUPS_CONFIG }) => {
+            const config = POWERUPS_CONFIG[powerUpId];
+            if (!config) {
+                console.error(`Power-up config not found: ${powerUpId}`);
+                return;
+            }
 
-        // Set icon based on type
-        if (type === 'bucket') {
-            this.iconText.text = '🪣';
-            this.labelText.text = i18n.t('powerups.bucket');
-        }
+            this.active = true;
+            this.powerUpType = powerUpId;
+            this.duration = duration;
+            this.elapsed = 0;
+            this.container.visible = true;
 
-        this.updateDisplay();
+            // Set display from config
+            this.iconText.text = config.icon || '✨';
+            this.labelText.text = i18n.t(config.nameKey);
+            this.descriptionText.text = i18n.t(config.descriptionKey);
+
+            this.updateDisplay();
+        });
     }
 
     /**
@@ -145,8 +165,8 @@ export class PowerUpTimer {
     drawBackground() {
         this.background.clear();
 
-        const width = 160;
-        const height = 90;
+        const width = 200;
+        const height = 110;
         const x = 0;
         const y = 0;
 
@@ -167,10 +187,10 @@ export class PowerUpTimer {
      * Draw progress bar
      */
     drawProgressBar() {
-        const barWidth = 130;
+        const barWidth = 170;
         const barHeight = 8;
         const barX = 15;
-        const barY = 70;
+        const barY = 90;
 
         const progress = 1 - (this.elapsed / this.duration);
 
@@ -222,7 +242,7 @@ export class PowerUpTimer {
         const screenWidth = GAME_CONFIG.width;
 
         // Position in top-center
-        this.container.x = (screenWidth / 2) - 80; // Center horizontally
+        this.container.x = (screenWidth / 2) - 100; // Center horizontally
         this.container.y = 20;
 
         // Icon position
@@ -231,11 +251,15 @@ export class PowerUpTimer {
 
         // Label position
         this.labelText.x = 55;
-        this.labelText.y = 15;
+        this.labelText.y = 12;
+
+        // Description position
+        this.descriptionText.x = 55;
+        this.descriptionText.y = 32;
 
         // Timer position
         this.timerText.x = 55;
-        this.timerText.y = 35;
+        this.timerText.y = 52;
     }
 
     /**
@@ -283,6 +307,7 @@ export class PowerUpTimer {
     destroy() {
         this.iconText.destroy();
         this.labelText.destroy();
+        this.descriptionText.destroy();
         this.timerText.destroy();
         this.progressBarBg.destroy();
         this.progressBarFill.destroy();

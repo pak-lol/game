@@ -29,6 +29,11 @@ export class ScoreDisplay {
         this.updateDisplay();
     }
 
+    add(amount) {
+        this.score += amount;
+        this.updateDisplay();
+    }
+
     updateDisplay() {
         this.text.text = `${i18n.t('game.score')}: ${this.score}`;
     }
