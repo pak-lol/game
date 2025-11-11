@@ -3,8 +3,7 @@ import { GAME_CONFIG } from '../config.js';
 import { i18n } from '../utils/i18n.js';
 
 /**
- * Main Menu Leaderboard Screen
- * Shows top scores from the main menu
+ * Modern Menu Leaderboard Screen
  */
 export class MenuLeaderboardScreen {
     constructor(scoreService, onBack) {
@@ -18,32 +17,38 @@ export class MenuLeaderboardScreen {
         const screenWidth = GAME_CONFIG.width;
         const screenHeight = GAME_CONFIG.height;
 
-        // Background overlay
-        const overlay = new PIXI.Graphics();
-        overlay.rect(0, 0, screenWidth, screenHeight);
-        overlay.fill({ color: 0x000000, alpha: 0.95 });
-        this.container.addChild(overlay);
+        // Background
+        const bg = new PIXI.Graphics();
+        bg.rect(0, 0, screenWidth, screenHeight);
+        bg.fill({ color: 0x0F2027 });
+        this.container.addChild(bg);
 
-        // Title
+        // Gradient overlay
+        const gradientOverlay = new PIXI.Graphics();
+        gradientOverlay.rect(0, 0, screenWidth, screenHeight);
+        gradientOverlay.fill({ color: 0x000000, alpha: 0.4 });
+        this.container.addChild(gradientOverlay);
+
+        // Title with glow
         const title = new PIXI.Text({
             text: '🏆 ' + i18n.t('leaderboard.title'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 42,
+                fontSize: Math.min(48, screenWidth * 0.1),
                 fill: '#FFD700',
                 fontWeight: 'bold',
-                stroke: { color: '#B8860B', width: 4 },
+                stroke: { color: '#B8860B', width: 5 },
                 dropShadow: {
-                    color: '#000000',
-                    blur: 6,
-                    angle: Math.PI / 4,
-                    distance: 4
+                    color: '#FFD700',
+                    blur: 20,
+                    distance: 0,
+                    alpha: 0.6
                 }
             }
         });
         title.anchor.set(0.5, 0);
         title.x = screenWidth / 2;
-        title.y = 30;
+        title.y = 25;
         this.container.addChild(title);
 
         // Get leaderboard data
@@ -52,181 +57,244 @@ export class MenuLeaderboardScreen {
         if (leaderboard.length === 0) {
             this.createEmptyState(screenWidth, screenHeight);
         } else {
-            this.createLeaderboard(leaderboard, screenWidth, screenHeight);
+            this.createModernLeaderboard(leaderboard, screenWidth, screenHeight);
         }
 
         // Back button
-        this.createBackButton(screenWidth, screenHeight);
+        this.createModernBackButton(screenWidth, screenHeight);
     }
 
     createEmptyState(screenWidth, screenHeight) {
+        const emptyContainer = new PIXI.Container();
+        emptyContainer.x = screenWidth / 2;
+        emptyContainer.y = screenHeight / 2;
+
+        const emptyIcon = new PIXI.Text({
+            text: '🎮',
+            style: {
+                fontSize: 80
+            }
+        });
+        emptyIcon.anchor.set(0.5);
+        emptyIcon.y = -40;
+        emptyContainer.addChild(emptyIcon);
+
         const emptyText = new PIXI.Text({
             text: i18n.t('leaderboard.noScores'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 24,
+                fontSize: 22,
                 fill: '#888888',
                 fontStyle: 'italic'
             }
         });
         emptyText.anchor.set(0.5);
-        emptyText.x = screenWidth / 2;
-        emptyText.y = screenHeight / 2;
-        this.container.addChild(emptyText);
-    }
+        emptyText.y = 30;
+        emptyContainer.addChild(emptyText);
 
-    createLeaderboard(leaderboard, screenWidth, screenHeight) {
-        let yPos = 100;
-
-        // Header
-        const header = this.createHeader(screenWidth / 2, yPos);
-        this.container.addChild(header);
-        yPos += 50;
-
-        // Leaderboard entries
-        leaderboard.forEach((entry, index) => {
-            const entryDisplay = this.createEntry(entry, index + 1, screenWidth / 2, yPos);
-            this.container.addChild(entryDisplay);
-            yPos += 55;
-        });
-    }
-
-    createHeader(x, y) {
-        const container = new PIXI.Container();
-        container.x = x;
-        container.y = y;
-
-        const headerBg = new PIXI.Graphics();
-        headerBg.roundRect(-200, -20, 400, 40, 5);
-        headerBg.fill({ color: 0x333333, alpha: 0.8 });
-        container.addChild(headerBg);
-
-        const rank = new PIXI.Text({
-            text: i18n.t('leaderboard.rank'),
-            style: { fontFamily: 'Arial', fontSize: 18, fill: '#FFD700', fontWeight: 'bold' }
-        });
-        rank.anchor.set(0.5, 0.5);
-        rank.x = -140;
-        rank.y = 0;
-        container.addChild(rank);
-
-        const player = new PIXI.Text({
-            text: i18n.t('leaderboard.player'),
-            style: { fontFamily: 'Arial', fontSize: 18, fill: '#FFD700', fontWeight: 'bold' }
-        });
-        player.anchor.set(0.5, 0.5);
-        player.x = 0;
-        player.y = 0;
-        container.addChild(player);
-
-        const score = new PIXI.Text({
-            text: i18n.t('leaderboard.score'),
-            style: { fontFamily: 'Arial', fontSize: 18, fill: '#FFD700', fontWeight: 'bold' }
-        });
-        score.anchor.set(0.5, 0.5);
-        score.x = 140;
-        score.y = 0;
-        container.addChild(score);
-
-        return container;
-    }
-
-    createEntry(entry, rank, x, y) {
-        const container = new PIXI.Container();
-        container.x = x;
-        container.y = y;
-
-        // Background
-        const bg = new PIXI.Graphics();
-        bg.roundRect(-200, -20, 400, 45, 5);
-
-        // Top 3 get special colors
-        let bgColor = 0x1a1a1a;
-        if (rank === 1) bgColor = 0xFFD700; // Gold
-        else if (rank === 2) bgColor = 0xC0C0C0; // Silver
-        else if (rank === 3) bgColor = 0xCD7F32; // Bronze
-
-        bg.fill({ color: bgColor, alpha: rank <= 3 ? 0.3 : 0.5 });
-        container.addChild(bg);
-
-        // Rank
-        let rankText = `#${rank}`;
-        if (rank === 1) rankText = '🥇';
-        else if (rank === 2) rankText = '🥈';
-        else if (rank === 3) rankText = '🥉';
-
-        const rankDisplay = new PIXI.Text({
-            text: rankText,
+        const playText = new PIXI.Text({
+            text: 'Pradėk žaisti ir būk pirmas!',
             style: {
                 fontFamily: 'Arial',
-                fontSize: 20,
-                fill: rank <= 3 ? '#FFD700' : '#FFFFFF',
+                fontSize: 16,
+                fill: '#4CAF50'
+            }
+        });
+        playText.anchor.set(0.5);
+        playText.y = 60;
+        emptyContainer.addChild(playText);
+
+        this.container.addChild(emptyContainer);
+    }
+
+    createModernLeaderboard(leaderboard, screenWidth, screenHeight) {
+        const contentWidth = Math.min(400, screenWidth - 40);
+        const startY = 95;
+
+        leaderboard.forEach((entry, index) => {
+            const rank = index + 1;
+            const entryCard = this.createModernEntry(entry, rank, screenWidth/2, startY + index * 68, contentWidth);
+            this.container.addChild(entryCard);
+        });
+    }
+
+    createModernEntry(entry, rank, x, y, width) {
+        const container = new PIXI.Container();
+        container.x = x;
+        container.y = y;
+
+        const height = 60;
+
+        // Card background with special effects for top 3
+        const card = new PIXI.Graphics();
+
+        let bgColor = 0x1a1a1a;
+        let borderColor = 0x333333;
+        let glowAlpha = 0;
+
+        if (rank === 1) {
+            bgColor = 0x2a2000;
+            borderColor = 0xFFD700;
+            glowAlpha = 0.3;
+        } else if (rank === 2) {
+            bgColor = 0x2a2a2a;
+            borderColor = 0xC0C0C0;
+            glowAlpha = 0.2;
+        } else if (rank === 3) {
+            bgColor = 0x2a1a0a;
+            borderColor = 0xCD7F32;
+            glowAlpha = 0.15;
+        }
+
+        // Glow for top 3
+        if (glowAlpha > 0) {
+            card.roundRect(-width/2 - 3, -3, width + 6, height + 6, 12);
+            card.fill({ color: borderColor, alpha: glowAlpha });
+        }
+
+        // Main card
+        card.roundRect(-width/2, 0, width, height, 12);
+        card.fill({ color: bgColor, alpha: 0.95 });
+
+        // Border
+        card.roundRect(-width/2, 0, width, height, 12);
+        card.stroke({ color: borderColor, width: rank <= 3 ? 3 : 2, alpha: rank <= 3 ? 0.8 : 0.3 });
+
+        container.addChild(card);
+
+        // Rank badge
+        let rankText = `#${rank}`;
+        let rankEmoji = '';
+        if (rank === 1) rankEmoji = '🥇';
+        else if (rank === 2) rankEmoji = '🥈';
+        else if (rank === 3) rankEmoji = '🥉';
+
+        const rankDisplay = new PIXI.Text({
+            text: rankEmoji || rankText,
+            style: {
+                fontFamily: 'Arial',
+                fontSize: rankEmoji ? 32 : 20,
+                fill: rank <= 3 ? '#FFD700' : '#888888',
                 fontWeight: 'bold'
             }
         });
         rankDisplay.anchor.set(0.5, 0.5);
-        rankDisplay.x = -140;
-        rankDisplay.y = 2;
+        rankDisplay.x = -width/2 + 35;
+        rankDisplay.y = height/2;
         container.addChild(rankDisplay);
 
         // Player name
+        const maxNameLength = 12;
+        let displayName = entry.username;
+        if (displayName.length > maxNameLength) {
+            displayName = displayName.substring(0, maxNameLength) + '...';
+        }
+
         const playerName = new PIXI.Text({
-            text: entry.username,
+            text: displayName,
             style: {
                 fontFamily: 'Arial',
-                fontSize: 18,
+                fontSize: 20,
                 fill: '#FFFFFF',
-                fontWeight: rank <= 3 ? 'bold' : 'normal'
+                fontWeight: rank <= 3 ? 'bold' : 'normal',
+                dropShadow: rank <= 3 ? {
+                    color: '#000000',
+                    blur: 4,
+                    distance: 2
+                } : undefined
             }
         });
-        playerName.anchor.set(0.5, 0.5);
-        playerName.x = 0;
-        playerName.y = 2;
+        playerName.anchor.set(0, 0.5);
+        playerName.x = -width/2 + 70;
+        playerName.y = height/2;
         container.addChild(playerName);
 
-        // Score
+        // Score with badge
+        const scoreBadge = new PIXI.Graphics();
+        const badgeWidth = 75;
+        const badgeHeight = 36;
+        const badgeX = width/2 - badgeWidth - 10;
+        const badgeY = (height - badgeHeight) / 2;
+
+        scoreBadge.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 8);
+        scoreBadge.fill({ color: 0x4CAF50, alpha: 0.2 });
+        scoreBadge.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 8);
+        scoreBadge.stroke({ color: 0x4CAF50, width: 2, alpha: 0.6 });
+        container.addChild(scoreBadge);
+
         const scoreDisplay = new PIXI.Text({
             text: entry.score.toString(),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 20,
+                fontSize: 22,
                 fill: '#4CAF50',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                dropShadow: {
+                    color: '#000000',
+                    blur: 4,
+                    distance: 2
+                }
             }
         });
         scoreDisplay.anchor.set(0.5, 0.5);
-        scoreDisplay.x = 140;
-        scoreDisplay.y = 2;
+        scoreDisplay.x = badgeX + badgeWidth/2;
+        scoreDisplay.y = badgeY + badgeHeight/2;
         container.addChild(scoreDisplay);
 
         return container;
     }
 
-    createBackButton(screenWidth, screenHeight) {
+    createModernBackButton(screenWidth, screenHeight) {
+        const buttonWidth = 160;
+        const buttonHeight = 55;
+
         const button = new PIXI.Graphics();
-        button.roundRect(0, 0, 200, 60, 10);
+
+        // Button shadow
+        button.roundRect(screenWidth/2 - buttonWidth/2 + 2, screenHeight - 75 + 2, buttonWidth, buttonHeight, 12);
+        button.fill({ color: 0x000000, alpha: 0.3 });
+
+        // Button background
+        button.roundRect(screenWidth/2 - buttonWidth/2, screenHeight - 75, buttonWidth, buttonHeight, 12);
         button.fill({ color: 0xFF9800, alpha: 0.9 });
-        button.x = screenWidth / 2 - 100;
-        button.y = screenHeight - 80;
+
+        // Button border
+        button.roundRect(screenWidth/2 - buttonWidth/2, screenHeight - 75, buttonWidth, buttonHeight, 12);
+        button.stroke({ color: 0xFFB74D, width: 3 });
 
         const buttonText = new PIXI.Text({
-            text: i18n.t('menu.back'),
+            text: '← ' + i18n.t('menu.back'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 24,
+                fontSize: 22,
                 fill: '#FFFFFF',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                dropShadow: {
+                    color: '#000000',
+                    blur: 4,
+                    distance: 2
+                }
             }
         });
         buttonText.anchor.set(0.5);
-        buttonText.x = 100;
-        buttonText.y = 30;
+        buttonText.x = screenWidth/2;
+        buttonText.y = screenHeight - 75 + buttonHeight/2;
         button.addChild(buttonText);
 
         button.interactive = true;
         button.cursor = 'pointer';
+
         button.on('pointerdown', () => {
+            button.scale.set(0.95);
+        });
+
+        button.on('pointerup', () => {
+            button.scale.set(1);
             if (this.onBack) this.onBack();
+        });
+
+        button.on('pointerupoutside', () => {
+            button.scale.set(1);
         });
 
         this.container.addChild(button);

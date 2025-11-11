@@ -3,8 +3,7 @@ import { GAME_CONFIG } from '../config.js';
 import { i18n } from '../utils/i18n.js';
 
 /**
- * Options/Settings Screen
- * Currently has sound toggle (for future implementation)
+ * Modern Options/Settings Screen
  */
 export class OptionsScreen {
     constructor(onBack) {
@@ -46,95 +45,110 @@ export class OptionsScreen {
         const screenWidth = GAME_CONFIG.width;
         const screenHeight = GAME_CONFIG.height;
 
-        // Background overlay
-        const overlay = new PIXI.Graphics();
-        overlay.rect(0, 0, screenWidth, screenHeight);
-        overlay.fill({ color: 0x000000, alpha: 0.95 });
-        this.container.addChild(overlay);
+        // Background
+        const bg = new PIXI.Graphics();
+        bg.rect(0, 0, screenWidth, screenHeight);
+        bg.fill({ color: 0x0F2027 });
+        this.container.addChild(bg);
 
-        // Title
+        // Gradient overlay
+        const gradientOverlay = new PIXI.Graphics();
+        gradientOverlay.rect(0, 0, screenWidth, screenHeight);
+        gradientOverlay.fill({ color: 0x000000, alpha: 0.4 });
+        this.container.addChild(gradientOverlay);
+
+        // Title with glow
         const title = new PIXI.Text({
             text: '⚙️ ' + i18n.t('menu.options'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 42,
+                fontSize: Math.min(48, screenWidth * 0.1),
                 fill: '#BA68C8',
                 fontWeight: 'bold',
-                stroke: { color: '#6A1B9A', width: 4 },
+                stroke: { color: '#6A1B9A', width: 5 },
                 dropShadow: {
-                    color: '#000000',
-                    blur: 6,
-                    angle: Math.PI / 4,
-                    distance: 4
+                    color: '#BA68C8',
+                    blur: 20,
+                    distance: 0,
+                    alpha: 0.5
                 }
             }
         });
         title.anchor.set(0.5, 0);
         title.x = screenWidth / 2;
-        title.y = 30;
+        title.y = 25;
         this.container.addChild(title);
 
-        // Settings
-        let yPos = 140;
+        // Settings container
+        const contentWidth = Math.min(380, screenWidth - 40);
+        let currentY = 120;
 
         // Sound toggle
-        this.soundToggle = this.createToggle(
-            '🔊 ' + i18n.t('options.sound'),
+        this.soundToggle = this.createModernToggle(
+            '🔊',
+            i18n.t('options.sound'),
             this.settings.soundEnabled,
             screenWidth / 2,
-            yPos,
+            currentY,
+            contentWidth,
             (enabled) => {
                 this.settings.soundEnabled = enabled;
                 this.saveSettings();
             }
         );
         this.container.addChild(this.soundToggle);
-        yPos += 100;
+        currentY += 100;
 
         // Music toggle
-        this.musicToggle = this.createToggle(
-            '🎵 ' + i18n.t('options.music'),
+        this.musicToggle = this.createModernToggle(
+            '🎵',
+            i18n.t('options.music'),
             this.settings.musicEnabled,
             screenWidth / 2,
-            yPos,
+            currentY,
+            contentWidth,
             (enabled) => {
                 this.settings.musicEnabled = enabled;
                 this.saveSettings();
             }
         );
         this.container.addChild(this.musicToggle);
+        currentY += 120;
 
-        // Coming soon note
-        const note = new PIXI.Text({
-            text: i18n.t('options.comingSoon'),
-            style: {
-                fontFamily: 'Arial',
-                fontSize: 18,
-                fill: '#888888',
-                fontStyle: 'italic'
-            }
-        });
-        note.anchor.set(0.5, 0);
-        note.x = screenWidth / 2;
-        note.y = yPos + 80;
-        this.container.addChild(note);
+        // Coming soon card
+        const comingSoonCard = this.createComingSoonCard(screenWidth / 2, currentY, contentWidth);
+        this.container.addChild(comingSoonCard);
 
         // Back button
-        this.createBackButton(screenWidth, screenHeight);
+        this.createModernBackButton(screenWidth, screenHeight);
     }
 
-    createToggle(label, initialState, x, y, onChange) {
+    createModernToggle(icon, label, initialState, x, y, width, onChange) {
         const container = new PIXI.Container();
         container.x = x;
         container.y = y;
 
-        // Background
-        const bg = new PIXI.Graphics();
-        bg.roundRect(-180, -35, 360, 70, 10);
-        bg.fill({ color: 0x1a1a1a, alpha: 0.8 });
-        bg.roundRect(-180, -35, 360, 70, 10);
-        bg.stroke({ color: 0xBA68C8, width: 2, alpha: 0.5 });
-        container.addChild(bg);
+        const height = 80;
+
+        // Card background
+        const card = new PIXI.Graphics();
+        card.roundRect(-width/2, 0, width, height, 15);
+        card.fill({ color: 0x1a1a1a, alpha: 0.9 });
+        card.roundRect(-width/2, 0, width, height, 15);
+        card.stroke({ color: 0xBA68C8, width: 2, alpha: 0.5 });
+        container.addChild(card);
+
+        // Icon
+        const iconText = new PIXI.Text({
+            text: icon,
+            style: {
+                fontSize: 32
+            }
+        });
+        iconText.anchor.set(0, 0.5);
+        iconText.x = -width/2 + 20;
+        iconText.y = height/2;
+        container.addChild(iconText);
 
         // Label
         const labelText = new PIXI.Text({
@@ -147,57 +161,69 @@ export class OptionsScreen {
             }
         });
         labelText.anchor.set(0, 0.5);
-        labelText.x = -160;
-        labelText.y = 0;
+        labelText.x = -width/2 + 65;
+        labelText.y = height/2;
         container.addChild(labelText);
 
-        // Toggle button
-        const toggleBg = new PIXI.Graphics();
-        const toggleX = 100;
-        const toggleWidth = 60;
-        const toggleHeight = 30;
+        // Modern toggle switch
+        const toggleContainer = new PIXI.Container();
+        const toggleWidth = 70;
+        const toggleHeight = 36;
+        toggleContainer.x = width/2 - 85;
+        toggleContainer.y = height/2;
 
+        const toggleBg = new PIXI.Graphics();
         const updateToggle = (enabled) => {
             toggleBg.clear();
 
-            // Background
-            toggleBg.roundRect(toggleX, -15, toggleWidth, toggleHeight, 15);
-            toggleBg.fill({ color: enabled ? 0x4CAF50 : 0x666666, alpha: 0.8 });
+            // Background track
+            toggleBg.roundRect(0, -toggleHeight/2, toggleWidth, toggleHeight, toggleHeight/2);
+            toggleBg.fill({ color: enabled ? 0x4CAF50 : 0x444444, alpha: 0.8 });
 
-            // Circle
-            const circleX = enabled ? toggleX + toggleWidth - 18 : toggleX + 12;
-            toggleBg.circle(circleX, 0, 12);
+            // Border
+            toggleBg.roundRect(0, -toggleHeight/2, toggleWidth, toggleHeight, toggleHeight/2);
+            toggleBg.stroke({ color: enabled ? 0x66BB6A : 0x666666, width: 2 });
+
+            // Switch circle
+            const circleX = enabled ? toggleWidth - 20 : 20;
+            toggleBg.circle(circleX, 0, 14);
             toggleBg.fill({ color: 0xFFFFFF });
+
+            // Circle shadow
+            toggleBg.circle(circleX, 1, 14);
+            toggleBg.stroke({ color: 0x000000, width: 1, alpha: 0.2 });
         };
 
         updateToggle(initialState);
-        container.addChild(toggleBg);
+        toggleContainer.addChild(toggleBg);
+        container.addChild(toggleContainer);
 
         // Status text
         const statusText = new PIXI.Text({
             text: initialState ? i18n.t('options.on') : i18n.t('options.off'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 18,
+                fontSize: 16,
                 fill: initialState ? '#4CAF50' : '#888888',
                 fontWeight: 'bold'
             }
         });
         statusText.anchor.set(0, 0.5);
-        statusText.x = toggleX + toggleWidth + 10;
-        statusText.y = 0;
+        statusText.x = width/2 - 10;
+        statusText.y = height/2;
         container.addChild(statusText);
 
         // Make interactive
         let enabled = initialState;
-        const hitArea = new PIXI.Graphics();
-        hitArea.rect(-180, -35, 360, 70);
-        hitArea.fill({ color: 0xFFFFFF, alpha: 0.01 });
-        container.addChild(hitArea);
-
         container.interactive = true;
         container.cursor = 'pointer';
+
         container.on('pointerdown', () => {
+            container.scale.set(0.98);
+        });
+
+        container.on('pointerup', () => {
+            container.scale.set(1);
             enabled = !enabled;
             updateToggle(enabled);
             statusText.text = enabled ? i18n.t('options.on') : i18n.t('options.off');
@@ -205,34 +231,109 @@ export class OptionsScreen {
             if (onChange) onChange(enabled);
         });
 
+        container.on('pointerupoutside', () => {
+            container.scale.set(1);
+        });
+
         return container;
     }
 
-    createBackButton(screenWidth, screenHeight) {
-        const button = new PIXI.Graphics();
-        button.roundRect(0, 0, 200, 60, 10);
-        button.fill({ color: 0x9C27B0, alpha: 0.9 });
-        button.x = screenWidth / 2 - 100;
-        button.y = screenHeight - 80;
+    createComingSoonCard(x, y, width) {
+        const container = new PIXI.Container();
+        container.x = x;
+        container.y = y;
 
-        const buttonText = new PIXI.Text({
-            text: i18n.t('menu.back'),
+        const height = 100;
+
+        // Card background
+        const card = new PIXI.Graphics();
+        card.roundRect(-width/2, 0, width, height, 15);
+        card.fill({ color: 0x1a1a1a, alpha: 0.6 });
+        card.roundRect(-width/2, 0, width, height, 15);
+        card.stroke({ color: 0x444444, width: 2, alpha: 0.3 });
+        container.addChild(card);
+
+        // Icon
+        const icon = new PIXI.Text({
+            text: '🚧',
+            style: {
+                fontSize: 40
+            }
+        });
+        icon.anchor.set(0.5);
+        icon.x = 0;
+        icon.y = 30;
+        container.addChild(icon);
+
+        // Text
+        const text = new PIXI.Text({
+            text: i18n.t('options.comingSoon'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 24,
+                fontSize: 16,
+                fill: '#888888',
+                fontStyle: 'italic'
+            }
+        });
+        text.anchor.set(0.5);
+        text.x = 0;
+        text.y = 70;
+        container.addChild(text);
+
+        return container;
+    }
+
+    createModernBackButton(screenWidth, screenHeight) {
+        const buttonWidth = 160;
+        const buttonHeight = 55;
+
+        const button = new PIXI.Graphics();
+
+        // Button shadow
+        button.roundRect(screenWidth/2 - buttonWidth/2 + 2, screenHeight - 75 + 2, buttonWidth, buttonHeight, 12);
+        button.fill({ color: 0x000000, alpha: 0.3 });
+
+        // Button background
+        button.roundRect(screenWidth/2 - buttonWidth/2, screenHeight - 75, buttonWidth, buttonHeight, 12);
+        button.fill({ color: 0x9C27B0, alpha: 0.9 });
+
+        // Button border
+        button.roundRect(screenWidth/2 - buttonWidth/2, screenHeight - 75, buttonWidth, buttonHeight, 12);
+        button.stroke({ color: 0xBA68C8, width: 3 });
+
+        const buttonText = new PIXI.Text({
+            text: '← ' + i18n.t('menu.back'),
+            style: {
+                fontFamily: 'Arial',
+                fontSize: 22,
                 fill: '#FFFFFF',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                dropShadow: {
+                    color: '#000000',
+                    blur: 4,
+                    distance: 2
+                }
             }
         });
         buttonText.anchor.set(0.5);
-        buttonText.x = 100;
-        buttonText.y = 30;
+        buttonText.x = screenWidth/2;
+        buttonText.y = screenHeight - 75 + buttonHeight/2;
         button.addChild(buttonText);
 
         button.interactive = true;
         button.cursor = 'pointer';
+
         button.on('pointerdown', () => {
+            button.scale.set(0.95);
+        });
+
+        button.on('pointerup', () => {
+            button.scale.set(1);
             if (this.onBack) this.onBack();
+        });
+
+        button.on('pointerupoutside', () => {
+            button.scale.set(1);
         });
 
         this.container.addChild(button);

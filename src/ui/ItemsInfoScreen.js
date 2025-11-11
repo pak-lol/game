@@ -3,13 +3,13 @@ import { GAME_CONFIG, ITEMS_CONFIG, POWERUPS_CONFIG } from '../config.js';
 import { i18n } from '../utils/i18n.js';
 
 /**
- * Items Information Screen
- * Shows all items and power-ups with their effects
+ * Modern Items Information Screen
  */
 export class ItemsInfoScreen {
     constructor(onBack) {
         this.container = new PIXI.Container();
         this.onBack = onBack;
+        this.scrollOffset = 0;
         this.create();
     }
 
@@ -17,132 +17,163 @@ export class ItemsInfoScreen {
         const screenWidth = GAME_CONFIG.width;
         const screenHeight = GAME_CONFIG.height;
 
-        // Background overlay
-        const overlay = new PIXI.Graphics();
-        overlay.rect(0, 0, screenWidth, screenHeight);
-        overlay.fill({ color: 0x000000, alpha: 0.95 });
-        this.container.addChild(overlay);
+        // Background with gradient
+        const bg = new PIXI.Graphics();
+        bg.rect(0, 0, screenWidth, screenHeight);
+        bg.fill({ color: 0x0F2027 });
+        this.container.addChild(bg);
 
-        // Title
+        // Add gradient overlay
+        const gradientOverlay = new PIXI.Graphics();
+        gradientOverlay.rect(0, 0, screenWidth, screenHeight);
+        gradientOverlay.fill({
+            color: 0x000000,
+            alpha: 0.4
+        });
+        this.container.addChild(gradientOverlay);
+
+        // Title with glow
         const title = new PIXI.Text({
-            text: i18n.t('menu.itemsInfo'),
+            text: '📋 ' + i18n.t('menu.itemsInfo'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 42,
+                fontSize: Math.min(48, screenWidth * 0.1),
                 fill: '#4CAF50',
                 fontWeight: 'bold',
-                stroke: { color: '#1B5E20', width: 4 },
+                stroke: { color: '#1B5E20', width: 5 },
                 dropShadow: {
-                    color: '#000000',
-                    blur: 6,
+                    color: '#4CAF50',
+                    blur: 20,
                     angle: Math.PI / 4,
-                    distance: 4
+                    distance: 0,
+                    alpha: 0.5
                 }
             }
         });
         title.anchor.set(0.5, 0);
         title.x = screenWidth / 2;
-        title.y = 30;
+        title.y = 25;
         this.container.addChild(title);
 
-        // Items section
-        let yPos = 100;
-        const sectionTitle = this.createSectionTitle('📦 DAIKTAI', screenWidth / 2, yPos);
-        this.container.addChild(sectionTitle);
-        yPos += 50;
+        // Content container
+        const contentY = 90;
+        const cardWidth = Math.min(380, screenWidth - 40);
+        const cardX = screenWidth / 2;
 
-        // Display all items
+        let currentY = contentY;
+
+        // Items section
         const items = Object.values(ITEMS_CONFIG);
-        for (const item of items) {
-            const itemDisplay = this.createItemDisplay(item, screenWidth / 2, yPos);
-            this.container.addChild(itemDisplay);
-            yPos += 90;
-        }
+        items.forEach((item, index) => {
+            const card = this.createModernItemCard(item, cardX, currentY, cardWidth);
+            this.container.addChild(card);
+            currentY += 110;
+        });
+
+        // Spacing
+        currentY += 20;
 
         // Power-ups section
-        yPos += 20;
-        const powerUpTitle = this.createSectionTitle('⚡ GALIŲ DAIKTAI', screenWidth / 2, yPos);
-        this.container.addChild(powerUpTitle);
-        yPos += 50;
-
-        // Display all power-ups
         const powerups = Object.values(POWERUPS_CONFIG);
-        for (const powerup of powerups) {
-            const powerupDisplay = this.createPowerUpDisplay(powerup, screenWidth / 2, yPos);
-            this.container.addChild(powerupDisplay);
-            yPos += 90;
-        }
+        powerups.forEach((powerup) => {
+            const card = this.createModernPowerUpCard(powerup, cardX, currentY, cardWidth);
+            this.container.addChild(card);
+            currentY += 110;
+        });
 
         // Back button
-        this.createBackButton(screenWidth, screenHeight);
+        this.createModernBackButton(screenWidth, screenHeight);
     }
 
-    createSectionTitle(text, x, y) {
-        const title = new PIXI.Text({
-            text: text,
-            style: {
-                fontFamily: 'Arial',
-                fontSize: 28,
-                fill: '#FFD700',
-                fontWeight: 'bold',
-                stroke: { color: '#000000', width: 3 }
-            }
-        });
-        title.anchor.set(0.5, 0);
-        title.x = x;
-        title.y = y;
-        return title;
-    }
-
-    createItemDisplay(item, x, y) {
+    createModernItemCard(item, x, y, width) {
         const container = new PIXI.Container();
         container.x = x;
         container.y = y;
 
-        // Background
-        const bg = new PIXI.Graphics();
-        bg.roundRect(-180, -30, 360, 70, 10);
-        bg.fill({ color: 0x1a1a1a, alpha: 0.8 });
-        bg.roundRect(-180, -30, 360, 70, 10);
-        bg.stroke({ color: parseInt(item.color.replace('#', ''), 16), width: 2, alpha: 0.8 });
-        container.addChild(bg);
+        const height = 90;
 
-        // Name and emoji
+        // Card background with gradient
+        const card = new PIXI.Graphics();
+        card.roundRect(-width/2, 0, width, height, 15);
+
+        // Gradient effect
+        const colorNum = parseInt(item.color.replace('#', ''), 16);
+        card.fill({ color: 0x1a1a1a, alpha: 0.9 });
+
+        // Border with item color
+        card.roundRect(-width/2, 0, width, height, 15);
+        card.stroke({ color: colorNum, width: 3, alpha: 0.6 });
+
+        // Glow effect for good items
+        if (item.scoreValue > 0) {
+            card.roundRect(-width/2 - 2, -2, width + 4, height + 4, 15);
+            card.stroke({ color: colorNum, width: 1, alpha: 0.3 });
+        }
+
+        container.addChild(card);
+
+        // Item name
         const nameText = new PIXI.Text({
             text: i18n.t(item.nameKey).toUpperCase(),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 20,
+                fontSize: 22,
                 fill: item.color,
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                dropShadow: {
+                    color: '#000000',
+                    blur: 4,
+                    distance: 2
+                }
             }
         });
         nameText.anchor.set(0, 0.5);
-        nameText.x = -170;
-        nameText.y = 0;
+        nameText.x = -width/2 + 20;
+        nameText.y = 30;
         container.addChild(nameText);
 
-        // Score or effect
-        let infoText = '';
+        // Score or effect badge
+        const badgeWidth = 80;
+        const badgeHeight = 35;
+        const badgeX = width/2 - badgeWidth - 15;
+        const badgeY = 25;
+
+        const badge = new PIXI.Graphics();
+        badge.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 10);
+
         if (item.gameOver) {
-            infoText = '💀 ŽAIDIMAS BAIGSIS';
+            badge.fill({ color: 0xFF0000, alpha: 0.2 });
+            badge.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 10);
+            badge.stroke({ color: 0xFF6B6B, width: 2 });
+        } else {
+            badge.fill({ color: colorNum, alpha: 0.2 });
+            badge.roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 10);
+            badge.stroke({ color: colorNum, width: 2 });
+        }
+        container.addChild(badge);
+
+        let badgeText = '';
+        let badgeColor = item.color;
+        if (item.gameOver) {
+            badgeText = '☠️ -1';
+            badgeColor = '#FF6B6B';
         } else if (item.scoreValue) {
-            infoText = `+${item.scoreValue} ${i18n.t('game.score')}`;
+            badgeText = `+${item.scoreValue}`;
         }
 
-        const info = new PIXI.Text({
-            text: infoText,
+        const badgeLabel = new PIXI.Text({
+            text: badgeText,
             style: {
                 fontFamily: 'Arial',
-                fontSize: 18,
-                fill: '#FFFFFF',
+                fontSize: 20,
+                fill: badgeColor,
                 fontWeight: 'bold'
             }
         });
-        info.anchor.set(1, 0.5);
-        info.x = 170;
-        info.y = 0;
-        container.addChild(info);
+        badgeLabel.anchor.set(0.5, 0.5);
+        badgeLabel.x = badgeX + badgeWidth/2;
+        badgeLabel.y = badgeY + badgeHeight/2;
+        container.addChild(badgeLabel);
 
         // Rarity indicator
         const rarityText = this.getRarityText(item.rarity);
@@ -150,44 +181,63 @@ export class ItemsInfoScreen {
             text: rarityText,
             style: {
                 fontFamily: 'Arial',
-                fontSize: 14,
-                fill: '#AAAAAA'
+                fontSize: 13,
+                fill: this.getRarityColor(item.rarity),
+                fontWeight: 'bold'
             }
         });
-        rarity.anchor.set(1, 0.5);
-        rarity.x = 170;
-        rarity.y = 15;
+        rarity.anchor.set(0, 0.5);
+        rarity.x = -width/2 + 20;
+        rarity.y = 60;
         container.addChild(rarity);
 
         return container;
     }
 
-    createPowerUpDisplay(powerup, x, y) {
+    createModernPowerUpCard(powerup, x, y, width) {
         const container = new PIXI.Container();
         container.x = x;
         container.y = y;
 
-        // Background
-        const bg = new PIXI.Graphics();
-        bg.roundRect(-180, -30, 360, 70, 10);
-        bg.fill({ color: 0x1a1a1a, alpha: 0.8 });
-        bg.roundRect(-180, -30, 360, 70, 10);
-        bg.stroke({ color: parseInt(powerup.color.replace('#', ''), 16), width: 2, alpha: 0.8 });
-        container.addChild(bg);
+        const height = 90;
+        const colorNum = parseInt(powerup.color.replace('#', ''), 16);
+
+        // Card with glow
+        const card = new PIXI.Graphics();
+
+        // Outer glow
+        card.roundRect(-width/2 - 3, -3, width + 6, height + 6, 15);
+        card.fill({ color: colorNum, alpha: 0.15 });
+
+        // Main card
+        card.roundRect(-width/2, 0, width, height, 15);
+        card.fill({ color: 0x1a1a1a, alpha: 0.95 });
+
+        // Border
+        card.roundRect(-width/2, 0, width, height, 15);
+        card.stroke({ color: colorNum, width: 3, alpha: 0.8 });
+
+        container.addChild(card);
 
         // Icon and name
         const nameText = new PIXI.Text({
             text: `${powerup.icon} ${i18n.t(powerup.nameKey).toUpperCase()}`,
             style: {
                 fontFamily: 'Arial',
-                fontSize: 20,
+                fontSize: 22,
                 fill: powerup.color,
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                dropShadow: {
+                    color: powerup.color,
+                    blur: 10,
+                    distance: 0,
+                    alpha: 0.5
+                }
             }
         });
         nameText.anchor.set(0, 0.5);
-        nameText.x = -170;
-        nameText.y = -5;
+        nameText.x = -width/2 + 20;
+        nameText.y = 28;
         container.addChild(nameText);
 
         // Description
@@ -196,63 +246,100 @@ export class ItemsInfoScreen {
             style: {
                 fontFamily: 'Arial',
                 fontSize: 14,
-                fill: '#CCCCCC'
+                fill: '#CCCCCC',
+                wordWrap: true,
+                wordWrapWidth: width - 40
             }
         });
         desc.anchor.set(0, 0.5);
-        desc.x = -170;
-        desc.y = 15;
+        desc.x = -width/2 + 20;
+        desc.y = 58;
         container.addChild(desc);
 
-        // Spawn chance
-        const chance = new PIXI.Text({
-            text: `${(powerup.spawnChance * 100).toFixed(0)}% šansas`,
+        // Chance badge
+        const chanceText = `${(powerup.spawnChance * 100).toFixed(0)}%`;
+        const chanceBadge = new PIXI.Text({
+            text: chanceText,
             style: {
                 fontFamily: 'Arial',
-                fontSize: 14,
-                fill: '#AAAAAA'
+                fontSize: 16,
+                fill: '#FFD700',
+                fontWeight: 'bold'
             }
         });
-        chance.anchor.set(1, 0.5);
-        chance.x = 170;
-        chance.y = 0;
-        container.addChild(chance);
+        chanceBadge.anchor.set(1, 0.5);
+        chanceBadge.x = width/2 - 20;
+        chanceBadge.y = 28;
+        container.addChild(chanceBadge);
 
         return container;
     }
 
     getRarityText(rarity) {
-        if (rarity >= 50) return '⭐ Dažnas';
-        if (rarity >= 20) return '⭐⭐ Vidutinis';
-        if (rarity >= 10) return '⭐⭐⭐ Retas';
-        return '⭐⭐⭐⭐ Labai retas';
+        if (rarity >= 50) return 'Dažnas';
+        if (rarity >= 20) return 'Vidutinis';
+        if (rarity >= 10) return 'Retas';
+        return 'Labai retas';
     }
 
-    createBackButton(screenWidth, screenHeight) {
+    getRarityColor(rarity) {
+        if (rarity >= 50) return '#888888';
+        if (rarity >= 20) return '#4CAF50';
+        if (rarity >= 10) return '#2196F3';
+        return '#FFD700';
+    }
+
+    createModernBackButton(screenWidth, screenHeight) {
+        const buttonWidth = 160;
+        const buttonHeight = 55;
+
         const button = new PIXI.Graphics();
-        button.roundRect(0, 0, 200, 60, 10);
-        button.fill({ color: 0x4CAF50, alpha: 0.9 });
-        button.x = screenWidth / 2 - 100;
-        button.y = screenHeight - 80;
+
+        // Button shadow
+        button.roundRect(screenWidth/2 - buttonWidth/2 + 2, screenHeight - 75 + 2, buttonWidth, buttonHeight, 12);
+        button.fill({ color: 0x000000, alpha: 0.3 });
+
+        // Button background
+        button.roundRect(screenWidth/2 - buttonWidth/2, screenHeight - 75, buttonWidth, buttonHeight, 12);
+        button.fill({ color: 0x2196F3, alpha: 0.9 });
+
+        // Button border
+        button.roundRect(screenWidth/2 - buttonWidth/2, screenHeight - 75, buttonWidth, buttonHeight, 12);
+        button.stroke({ color: 0x42A5F5, width: 3 });
 
         const buttonText = new PIXI.Text({
-            text: i18n.t('menu.back'),
+            text: '← ' + i18n.t('menu.back'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 24,
+                fontSize: 22,
                 fill: '#FFFFFF',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                dropShadow: {
+                    color: '#000000',
+                    blur: 4,
+                    distance: 2
+                }
             }
         });
         buttonText.anchor.set(0.5);
-        buttonText.x = 100;
-        buttonText.y = 30;
+        buttonText.x = screenWidth/2;
+        buttonText.y = screenHeight - 75 + buttonHeight/2;
         button.addChild(buttonText);
 
         button.interactive = true;
         button.cursor = 'pointer';
+
         button.on('pointerdown', () => {
+            button.scale.set(0.95);
+        });
+
+        button.on('pointerup', () => {
+            button.scale.set(1);
             if (this.onBack) this.onBack();
+        });
+
+        button.on('pointerupoutside', () => {
+            button.scale.set(1);
         });
 
         this.container.addChild(button);

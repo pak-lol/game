@@ -129,39 +129,16 @@
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
 
-        .instructions {
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid rgba(76, 175, 80, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 10px 0;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .instruction-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin: 15px 0;
-            color: white;
-            font-size: clamp(14px, 3vw, 16px);
-        }
-
-        .instruction-icon {
-            font-size: clamp(30px, 6vw, 40px);
-            min-width: 50px;
+        .game-info {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: clamp(12px, 2.5vw, 14px);
             text-align: center;
+            margin-bottom: 15px;
+            line-height: 1.6;
         }
 
-        .good-item {
+        .game-info strong {
             color: #4CAF50;
-            font-weight: bold;
-        }
-
-        .bad-item {
-            color: #FF6B6B;
-            font-weight: bold;
         }
 
         .username-container {
@@ -346,30 +323,12 @@
                     <div class="emoji">🌿</div>
                 </div>
                 <h1 id="gameTitle">Žolės Gaudytojas</h1>
-                <p class="subtitle">Gaudyk teisingus lapus ir išvenk klaidingų!</p>
-                
-                <div class="instructions">
-                    <div class="instruction-item">
-                        <div class="instruction-icon">🌿</div>
-                        <div>
-                            <span class="good-item">VORINIO DUMAI</span><br>
-                            Gaudyk šiuos! +1 taškas
-                        </div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon">🍂</div>
-                        <div>
-                            <span class="bad-item">CHIMKE</span><br>
-                            Vengk šių! Žaidimas baigsis
-                        </div>
-                    </div>
-                    <div class="instruction-item">
-                        <div class="instruction-icon">👆</div>
-                        <div>
-                            Valdyk krepšelį pelės arba lietimo judesiais
-                        </div>
-                    </div>
-                </div>
+                <p class="subtitle">Gaudyk krentančius daiktus ir pelnysi taškus!</p>
+
+                <p class="game-info">
+                    Valdyk krepšelį ir gaudyk <strong>gerus daiktus</strong> 🌿<br>
+                    Uždirbk taškus ir tapk lyderiu! 🏆
+                </p>
 
                 <div class="username-container">
                     <input
