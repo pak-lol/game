@@ -2,9 +2,10 @@ import * as PIXI from 'pixi.js';
 import { GAME_CONFIG, ITEM_CONFIG } from '../config.js';
 
 export class FallingItem {
-    constructor(texture, type, label) {
+    constructor(texture, type, label, speedMultiplier = 1.0) {
         this.type = type;
         this.container = new PIXI.Container();
+        this.speedMultiplier = speedMultiplier;
         
         // Create sprite
         this.sprite = new PIXI.Sprite(texture);
@@ -44,8 +45,9 @@ export class FallingItem {
         this.container.x = Math.random() * (GAME_CONFIG.width - 80) + 40;
         this.container.y = -50;
         
-        // Movement properties
-        this.speed = Math.random() * (ITEM_CONFIG.maxSpeed - ITEM_CONFIG.minSpeed) + ITEM_CONFIG.minSpeed;
+        // Movement properties with speed multiplier applied
+        const baseSpeed = Math.random() * (ITEM_CONFIG.baseMaxSpeed - ITEM_CONFIG.baseMinSpeed) + ITEM_CONFIG.baseMinSpeed;
+        this.speed = baseSpeed * this.speedMultiplier;
         this.sprite.rotation = Math.random() * Math.PI * 2;
         this.rotationSpeed = Math.random() * (ITEM_CONFIG.maxRotationSpeed - ITEM_CONFIG.minRotationSpeed) + ITEM_CONFIG.minRotationSpeed;
         

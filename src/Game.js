@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { GAME_CONFIG, updateGameDimensions } from './config.js';
+import { GAME_CONFIG, DIFFICULTY_CONFIG, updateGameDimensions } from './config.js';
 import { AssetLoader } from './utils/AssetLoader.js';
 import { Player } from './entities/Player.js';
 import { FallingItem } from './entities/FallingItem.js';
@@ -21,6 +21,9 @@ export class Game {
         this.fallingItems = [];
         this.spawnTimer = 0;
         this.gameLoopBound = null;
+        this.currentSpeedMultiplier = 1.0;
+        this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
+        this.username = '';
     }
 
     async init() {
@@ -53,7 +56,34 @@ export class Game {
         this.setupResizeHandler();
         
         // Setup start button
-        document.getElementById('startButton').addEventListener('click', () => this.start());
+        document.getElementById('startButton').addEventListener('click', () => this.handleStartClick());
+        
+        // Allow Enter key to start game
+        document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.handleStartClick();
+            }
+        });
+    }
+
+    handleStartClick() {
+        const usernameInput = document.getElementById('usernameInput');
+        const username = usernameInput.value.trim();
+        
+        if (!username) {
+            // Show error
+            usernameInput.style.borderColor = '#FF6B6B';
+            usernameInput.placeholder = i18n.t('game.usernameRequired');
+            setTimeout(() => {
+                usernameInput.style.borderColor = 'rgba(76, 175, 80, 0.5)';
+                usernameInput.placeholder = i18n.t('game.usernamePlaceholder');
+            }, 2000);
+            return;
+        }
+        
+        this.username = username;
+        console.log('Starting game for player:', this.username);
+        this.start();
     }
 
     setupResizeHandler() {
@@ -103,6 +133,7 @@ export class Game {
     updateUITranslations() {
         document.getElementById('gameTitle').textContent = i18n.t('game.title');
         document.getElementById('startButton').textContent = i18n.t('game.start');
+        document.getElementById('usernameInput').placeholder = i18n.t('game.usernamePlaceholder');
     }
 
     start() {
@@ -170,18 +201,18 @@ export class Game {
                 ? i18n.t('items.chimke')
                 : i18n.t('items.vorinioDumai');
         
-        const item = new FallingItem(texture, randomType, label);
+        const item = new FallingItem(texture, randomType, label, this.currentSpeedMultiplier);
         
         item.addToStage(this.app.stage);
         this.fallingItems.push(item);
     }
 
     update(delta) {
-        if (!this.gameStarted) return;
+        if (!this.gameStarted || !this.scoreDisplay || !this.player) return;
         
         // Spawn falling items
         this.spawnTimer += delta.deltaTime;
-        if (this.spawnTimer > GAME_CONFIG.spawnInterval) {
+        if (this.spawnTimer > this.currentSpawnInterval) {
             this.spawnFallingItem();
             this.spawnTimer = 0;
         }
@@ -189,6 +220,8 @@ export class Game {
         // Update falling items
         for (let i = this.fallingItems.length - 1; i >= 0; i--) {
             const item = this.fallingItems[i];
+            if (!item || !item.update) continue;
+            
             item.update(delta.deltaTime);
             
             // Check collision with player
@@ -206,12 +239,17 @@ export class Game {
     }
 
     handleItemCatch(item, index) {
+        if (!item || !this.scoreDisplay) return;
+        
         const position = item.getPosition();
         
         // Only increment score for "vorinio dumai"
         if (item.isScoreable()) {
             this.scoreDisplay.increment();
             this.particleSystem.createCatchEffect(position.x, position.y, '#4CAF50');
+            
+            // Increase difficulty
+            this.increaseDifficulty();
         } else {
             // Game over for catching "chimke"
             this.particleSystem.createCatchEffect(position.x, position.y, '#FF6B6B');
@@ -220,6 +258,23 @@ export class Game {
         
         item.removeFromStage(this.app.stage);
         this.fallingItems.splice(index, 1);
+    }
+
+    increaseDifficulty() {
+        // Increase speed multiplier
+        const speedIncrease = DIFFICULTY_CONFIG.speedIncreasePerScore;
+        this.currentSpeedMultiplier = Math.min(
+            this.currentSpeedMultiplier + speedIncrease,
+            DIFFICULTY_CONFIG.maxSpeedMultiplier
+        );
+        
+        // Decrease spawn interval (spawn faster)
+        this.currentSpawnInterval = Math.max(
+            this.currentSpawnInterval - DIFFICULTY_CONFIG.spawnRateIncrease,
+            DIFFICULTY_CONFIG.minSpawnInterval
+        );
+        
+        console.log(`Difficulty increased! Speed: ${this.currentSpeedMultiplier.toFixed(2)}x, Spawn interval: ${this.currentSpawnInterval}`);
     }
 
     gameOver() {
@@ -236,8 +291,47 @@ export class Game {
         }
         this.fallingItems = [];
         
+        // Save score to leaderboard (for future implementation)
+        this.saveScore();
+        
         // Show game over screen
         this.showGameOverScreen();
+    }
+
+    saveScore() {
+        const scoreData = {
+            username: this.username,
+            score: this.scoreDisplay.score,
+            timestamp: new Date().toISOString()
+        };
+        
+        console.log('Saving score:', scoreData);
+        
+        // Get existing leaderboard from localStorage
+        let leaderboard = [];
+        try {
+            const stored = localStorage.getItem('weedCatcherLeaderboard');
+            if (stored) {
+                leaderboard = JSON.parse(stored);
+            }
+        } catch (e) {
+            console.error('Error loading leaderboard:', e);
+        }
+        
+        // Add new score
+        leaderboard.push(scoreData);
+        
+        // Sort by score (highest first) and keep top 100
+        leaderboard.sort((a, b) => b.score - a.score);
+        leaderboard = leaderboard.slice(0, 100);
+        
+        // Save back to localStorage
+        try {
+            localStorage.setItem('weedCatcherLeaderboard', JSON.stringify(leaderboard));
+            console.log('Score saved successfully!');
+        } catch (e) {
+            console.error('Error saving score:', e);
+        }
     }
 
     showGameOverScreen() {
@@ -276,6 +370,23 @@ export class Game {
         gameOverText.y = GAME_CONFIG.height / 2 - 80;
         gameOverContainer.addChild(gameOverText);
         
+        // Player name text
+        const playerNameText = new PIXI.Text({
+            text: this.username,
+            style: {
+                fontFamily: 'Arial',
+                fontSize: scoreSize,
+                fill: '#FFD700',
+                fontWeight: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
+            }
+        });
+        playerNameText.anchor.set(0.5);
+        playerNameText.x = GAME_CONFIG.width / 2;
+        playerNameText.y = GAME_CONFIG.height / 2 - 30;
+        gameOverContainer.addChild(playerNameText);
+        
         // Score text
         const finalScoreText = new PIXI.Text({
             text: `${i18n.t('game.finalScore')}: ${this.scoreDisplay.score}`,
@@ -290,7 +401,7 @@ export class Game {
         });
         finalScoreText.anchor.set(0.5);
         finalScoreText.x = GAME_CONFIG.width / 2;
-        finalScoreText.y = GAME_CONFIG.height / 2;
+        finalScoreText.y = GAME_CONFIG.height / 2 + 20;
         gameOverContainer.addChild(finalScoreText);
         
         // Warning text
@@ -349,6 +460,10 @@ export class Game {
         this.gameStarted = false;
         this.background = null;
         this.player = null;
+        
+        // Reset difficulty
+        this.currentSpeedMultiplier = 1.0;
+        this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
         
         // Create new score display
         this.scoreDisplay = new ScoreDisplay();

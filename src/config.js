@@ -26,8 +26,8 @@ export const PLAYER_CONFIG = {
 export const ITEM_CONFIG = {
     minScale: 0.4,
     maxScale: 0.7,
-    minSpeed: 2,
-    maxSpeed: 3.5,
+    baseMinSpeed: 2,
+    baseMaxSpeed: 3.5,
     minRotationSpeed: -0.08,
     maxRotationSpeed: 0.08,
     minSwingSpeed: 0.02,
@@ -36,6 +36,13 @@ export const ITEM_CONFIG = {
     maxSwingAmount: 20,
     // Responsive font size
     getFontSize: () => Math.max(12, Math.min(16, GAME_CONFIG.width / 50))
+};
+
+export const DIFFICULTY_CONFIG = {
+    speedIncreasePerScore: 0.1, // Speed increase per point scored
+    maxSpeedMultiplier: 2.5, // Maximum speed multiplier (2.5x base speed)
+    spawnRateIncrease: 2, // Decrease spawn interval by this amount per score
+    minSpawnInterval: 25 // Minimum spawn interval
 };
 
 export const PARTICLE_CONFIG = {
