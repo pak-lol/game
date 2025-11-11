@@ -1,15 +1,49 @@
 import { Game } from './Game.js';
+import { TelegramService } from './services/TelegramService.js';
 
+// Initialize Telegram first
+const telegramService = new TelegramService();
+telegramService.init();
+
+// Create game instance
 const game = new Game();
+
+// Pre-fill username from Telegram if available
+function prefillUsername() {
+    const username = telegramService.getUserDisplayName();
+    if (username) {
+        const input = document.getElementById('usernameInput');
+        if (input) {
+            input.value = username;
+            console.log('Pre-filled username from Telegram:', username);
+        }
+    }
+}
 
 window.onload = async () => {
     try {
         console.log('Initializing game...');
+        console.log('Running in Telegram:', telegramService.isRunningInTelegram());
+        console.log('Platform:', telegramService.getPlatform());
+        console.log('Is Mobile:', telegramService.isMobile());
+
+        // Get viewport info
+        const viewport = telegramService.getViewportDimensions();
+        console.log('Viewport dimensions:', viewport);
+
+        // Pre-fill username if in Telegram
+        prefillUsername();
+
+        // Initialize game
         await game.init();
+
+        // Set Telegram service in game
+        game.setTelegramService(telegramService);
+
         console.log('Game initialized successfully!');
     } catch (error) {
         console.error('Failed to initialize game:', error);
-        
+
         // Show error to user
         const startScreen = document.getElementById('startScreen');
         if (startScreen) {
@@ -26,3 +60,9 @@ window.onload = async () => {
         }
     }
 };
+
+// Handle Telegram viewport changes
+window.addEventListener('telegramViewportChanged', () => {
+    console.log('Handling Telegram viewport change in main.js');
+    // The game will handle the resize through its resize handler
+});

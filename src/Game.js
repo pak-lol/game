@@ -7,63 +7,112 @@ import { CollisionSystem } from './systems/CollisionSystem.js';
 import { ParticleSystem } from './systems/ParticleSystem.js';
 import { ScoreDisplay } from './ui/ScoreDisplay.js';
 import { i18n } from './utils/i18n.js';
+import { GameStateManager, GameState } from './managers/GameStateManager.js';
+import { ScoreService } from './services/ScoreService.js';
+import { UIManager } from './managers/UIManager.js';
 
+/**
+ * Main Game class - orchestrates all game systems
+ */
 export class Game {
     constructor() {
+        // Core systems
         this.app = null;
         this.assetLoader = new AssetLoader();
-        this.player = null;
-        this.scoreDisplay = null;
         this.collisionSystem = new CollisionSystem();
         this.particleSystem = null;
-        
-        this.gameStarted = false;
+
+        // Managers and services
+        this.stateManager = new GameStateManager();
+        this.scoreService = new ScoreService();
+        this.uiManager = new UIManager();
+        this.telegramService = null;
+
+        // Game entities
+        this.player = null;
+        this.scoreDisplay = null;
         this.fallingItems = [];
+
+        // Game state
         this.spawnTimer = 0;
         this.gameLoopBound = null;
         this.currentSpeedMultiplier = 1.0;
         this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
         this.username = '';
+
+        // Background reference
+        this.background = null;
+
+        // Event listeners for cleanup
+        this.resizeListener = null;
+        this.orientationListener = null;
+        this.telegramViewportListener = null;
     }
 
+    /**
+     * Set Telegram service instance
+     * @param {TelegramService} telegramService
+     */
+    setTelegramService(telegramService) {
+        this.telegramService = telegramService;
+        console.log('Telegram service set in Game');
+    }
+
+    /**
+     * Initialize the game
+     */
     async init() {
-        // Load translations
-        await i18n.load(GAME_CONFIG.defaultLocale);
-        
-        // Update UI with translations
-        this.updateUITranslations();
-        
-        // Initialize PixiJS app with responsive settings
-        this.app = new PIXI.Application();
-        await this.app.init({
-            width: GAME_CONFIG.width,
-            height: GAME_CONFIG.height,
-            backgroundColor: GAME_CONFIG.backgroundColor,
-            antialias: true,
-            resolution: window.devicePixelRatio || 1,
-            autoDensity: true
-        });
-        
-        document.getElementById('gameContainer').appendChild(this.app.canvas);
-        
-        // Load assets
-        await this.assetLoader.loadAll();
-        
-        // Initialize systems
-        this.particleSystem = new ParticleSystem(this.app);
-        
-        // Setup resize handler
-        this.setupResizeHandler();
-        
-        // Setup start button
-        document.getElementById('startButton').addEventListener('click', () => this.handleStartClick());
-        
-        // Allow Enter key to start game
-        document.getElementById('usernameInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.handleStartClick();
-            }
-        });
+        try {
+            // Set initial state
+            this.stateManager.setState(GameState.LOADING);
+
+            // Load translations
+            await i18n.load(GAME_CONFIG.defaultLocale);
+
+            // Update UI with translations
+            this.updateUITranslations();
+
+            // Initialize PixiJS app with responsive settings
+            this.app = new PIXI.Application();
+            await this.app.init({
+                width: GAME_CONFIG.width,
+                height: GAME_CONFIG.height,
+                backgroundColor: GAME_CONFIG.backgroundColor,
+                antialias: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+
+            document.getElementById('gameContainer').appendChild(this.app.canvas);
+
+            // Load assets
+            await this.assetLoader.loadAll();
+
+            // Initialize systems
+            this.particleSystem = new ParticleSystem(this.app);
+            this.uiManager.setStage(this.app.stage);
+
+            // Setup resize handler
+            this.setupResizeHandler();
+
+            // Setup start button
+            document.getElementById('startButton').addEventListener('click', () => this.handleStartClick());
+
+            // Allow Enter key to start game
+            document.getElementById('usernameInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.handleStartClick();
+                }
+            });
+
+            // Set state to start screen
+            this.stateManager.setState(GameState.START_SCREEN);
+
+            console.log('Game initialized successfully!');
+        } catch (error) {
+            console.error('Failed to initialize game:', error);
+            throw error;
+        }
     }
 
     handleStartClick() {
@@ -86,11 +135,14 @@ export class Game {
         this.start();
     }
 
+    /**
+     * Setup window resize handler
+     */
     setupResizeHandler() {
         const resize = () => {
             const oldWidth = GAME_CONFIG.width;
             const oldHeight = GAME_CONFIG.height;
-            
+
             updateGameDimensions();
             this.app.renderer.resize(GAME_CONFIG.width, GAME_CONFIG.height);
 
@@ -105,14 +157,14 @@ export class Game {
             if (this.player) {
                 this.player.updateBounds();
             }
-            
+
             // Update score display position if it exists
             if (this.scoreDisplay && this.scoreDisplay.text) {
                 // Keep score in top-left corner
                 this.scoreDisplay.text.x = 20;
                 this.scoreDisplay.text.y = 20;
             }
-            
+
             // Update falling items positions proportionally
             if (this.fallingItems.length > 0) {
                 const scaleX = GAME_CONFIG.width / oldWidth;
@@ -124,10 +176,20 @@ export class Game {
             }
         };
 
-        window.addEventListener('resize', resize);
-        window.addEventListener('orientationchange', () => {
+        // Store listeners for cleanup
+        this.resizeListener = resize;
+        this.orientationListener = () => {
             setTimeout(resize, 100);
-        });
+        };
+        this.telegramViewportListener = () => {
+            console.log('Telegram viewport changed, resizing game...');
+            setTimeout(resize, 100);
+        };
+
+        // Add event listeners
+        window.addEventListener('resize', this.resizeListener);
+        window.addEventListener('orientationchange', this.orientationListener);
+        window.addEventListener('telegramViewportChanged', this.telegramViewportListener);
     }
 
     updateUITranslations() {
@@ -136,22 +198,31 @@ export class Game {
         document.getElementById('usernameInput').placeholder = i18n.t('game.usernamePlaceholder');
     }
 
+    /**
+     * Start the game
+     */
     start() {
-        document.getElementById('startScreen').classList.add('hidden');
-        this.gameStarted = true;
-        
+        // Hide start screen
+        this.uiManager.hideStartScreen();
+
+        // Set state to playing
+        this.stateManager.setState(GameState.PLAYING);
+
+        // Create game entities
         this.createBackground();
         this.createPlayer();
         this.createScoreDisplay();
-        
+
         // Remove old game loop if it exists
         if (this.gameLoopBound) {
             this.app.ticker.remove(this.gameLoopBound);
         }
-        
+
         // Create and add new game loop
         this.gameLoopBound = (delta) => this.update(delta);
         this.app.ticker.add(this.gameLoopBound);
+
+        console.log('Game started for player:', this.username);
     }
 
     createBackground() {
@@ -207,29 +278,36 @@ export class Game {
         this.fallingItems.push(item);
     }
 
+    /**
+     * Main game loop update
+     * @param {Object} delta - Delta time
+     */
     update(delta) {
-        if (!this.gameStarted || !this.scoreDisplay || !this.player) return;
-        
+        // Only update if playing
+        if (!this.stateManager.isPlaying() || !this.scoreDisplay || !this.player) {
+            return;
+        }
+
         // Spawn falling items
         this.spawnTimer += delta.deltaTime;
         if (this.spawnTimer > this.currentSpawnInterval) {
             this.spawnFallingItem();
             this.spawnTimer = 0;
         }
-        
+
         // Update falling items
         for (let i = this.fallingItems.length - 1; i >= 0; i--) {
             const item = this.fallingItems[i];
             if (!item || !item.update) continue;
-            
+
             item.update(delta.deltaTime);
-            
+
             // Check collision with player
             if (this.collisionSystem.checkCollision(item, this.player)) {
                 this.handleItemCatch(item, i);
                 continue;
             }
-            
+
             // Remove if off screen
             if (item.isOffScreen()) {
                 item.removeFromStage(this.app.stage);
@@ -240,22 +318,33 @@ export class Game {
 
     handleItemCatch(item, index) {
         if (!item || !this.scoreDisplay) return;
-        
+
         const position = item.getPosition();
-        
+
         // Only increment score for "vorinio dumai"
         if (item.isScoreable()) {
             this.scoreDisplay.increment();
             this.particleSystem.createCatchEffect(position.x, position.y, '#4CAF50');
-            
+
+            // Haptic feedback for success
+            if (this.telegramService) {
+                this.telegramService.hapticFeedback('light');
+            }
+
             // Increase difficulty
             this.increaseDifficulty();
         } else {
             // Game over for catching "chimke"
             this.particleSystem.createCatchEffect(position.x, position.y, '#FF6B6B');
+
+            // Haptic feedback for error
+            if (this.telegramService) {
+                this.telegramService.hapticFeedback('error');
+            }
+
             this.gameOver();
         }
-        
+
         item.removeFromStage(this.app.stage);
         this.fallingItems.splice(index, 1);
     }
@@ -277,356 +366,158 @@ export class Game {
         console.log(`Difficulty increased! Speed: ${this.currentSpeedMultiplier.toFixed(2)}x, Spawn interval: ${this.currentSpawnInterval}`);
     }
 
+    /**
+     * Handle game over
+     */
     gameOver() {
-        this.gameStarted = false;
-        
+        // Set state
+        this.stateManager.setState(GameState.GAME_OVER);
+
         // Remove game loop ticker
         if (this.gameLoopBound) {
             this.app.ticker.remove(this.gameLoopBound);
         }
-        
+
         // Stop all falling items
+        this.clearFallingItems();
+
+        // Save score and get leaderboard
+        const scoreData = this.scoreService.saveScore(this.username, this.scoreDisplay.score);
+        const leaderboard = this.scoreService.getTopScores(10);
+
+        // Show game over screen with leaderboard
+        this.showGameOverScreen(scoreData, leaderboard);
+    }
+
+    /**
+     * Clear all falling items from the game
+     */
+    clearFallingItems() {
         for (const item of this.fallingItems) {
-            item.removeFromStage(this.app.stage);
+            if (item && item.removeFromStage) {
+                item.removeFromStage(this.app.stage);
+            }
         }
         this.fallingItems = [];
-        
-        // Save score to leaderboard (for future implementation)
-        this.saveScore();
-        
-        // Show game over screen
-        this.showGameOverScreen();
     }
 
-    saveScore() {
-        const scoreData = {
-            username: this.username,
-            score: this.scoreDisplay.score,
-            timestamp: new Date().toISOString()
-        };
-        
-        console.log('Saving score:', scoreData);
-        
-        // Get existing leaderboard from localStorage
-        let leaderboard = [];
-        try {
-            const stored = localStorage.getItem('weedCatcherLeaderboard');
-            if (stored) {
-                leaderboard = JSON.parse(stored);
-            }
-        } catch (e) {
-            console.error('Error loading leaderboard:', e);
-        }
-        
-        // Add new score
-        leaderboard.push(scoreData);
-        
-        // Sort by score (highest first) and keep top 100
-        leaderboard.sort((a, b) => b.score - a.score);
-        leaderboard = leaderboard.slice(0, 100);
-        
-        // Save back to localStorage
-        try {
-            localStorage.setItem('weedCatcherLeaderboard', JSON.stringify(leaderboard));
-            console.log('Score saved successfully!');
-        } catch (e) {
-            console.error('Error saving score:', e);
-        }
-    }
-
-    showGameOverScreen() {
-        const gameOverContainer = new PIXI.Container();
-        
-        // Animated gradient background
-        const overlay = new PIXI.Graphics();
-        overlay.rect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
-        overlay.fill({ color: 0x000000, alpha: 0.9 });
-        gameOverContainer.addChild(overlay);
-        
-        // Responsive font sizes
-        const titleSize = Math.max(40, Math.min(72, GAME_CONFIG.width / 10));
-        const nameSize = Math.max(28, Math.min(42, GAME_CONFIG.width / 18));
-        const scoreSize = Math.max(32, Math.min(56, GAME_CONFIG.width / 14));
-        const warningSize = Math.max(14, Math.min(20, GAME_CONFIG.width / 35));
-        const restartSize = Math.max(22, Math.min(32, GAME_CONFIG.width / 22));
-        
-        const centerX = GAME_CONFIG.width / 2;
-        const centerY = GAME_CONFIG.height / 2;
-        
-        // Decorative panel background
-        const panel = new PIXI.Graphics();
-        const panelWidth = Math.min(500, GAME_CONFIG.width - 40);
-        const panelHeight = Math.min(450, GAME_CONFIG.height - 100);
-        panel.roundRect(
-            centerX - panelWidth / 2,
-            centerY - panelHeight / 2,
-            panelWidth,
-            panelHeight,
-            20
+    /**
+     * Show game over screen
+     * @param {Object} scoreData - Score data with rank
+     * @param {Array} leaderboard - Leaderboard entries
+     */
+    showGameOverScreen(scoreData, leaderboard) {
+        this.uiManager.showGameOverScreen(
+            this.username,
+            this.scoreDisplay.score,
+            scoreData,
+            leaderboard,
+            () => this.restart()
         );
-        panel.fill({ color: 0x1a1a2e, alpha: 0.95 });
-        panel.stroke({ color: 0xFF6B6B, width: 4 });
-        gameOverContainer.addChild(panel);
-        
-        // Skull/sad emoji decoration
-        const emojiText = new PIXI.Text({
-            text: '💀',
-            style: {
-                fontSize: Math.max(40, Math.min(60, GAME_CONFIG.width / 12))
-            }
-        });
-        emojiText.anchor.set(0.5);
-        emojiText.x = centerX;
-        emojiText.y = centerY - panelHeight / 2 + 50;
-        gameOverContainer.addChild(emojiText);
-        
-        // Game Over text with glow
-        const gameOverText = new PIXI.Text({
-            text: i18n.t('game.gameOver'),
-            style: {
-                fontFamily: 'Arial',
-                fontSize: titleSize,
-                fill: '#FF6B6B',
-                fontWeight: 'bold',
-                stroke: '#8B0000',
-                strokeThickness: 6,
-                dropShadow: true,
-                dropShadowColor: '#FF0000',
-                dropShadowBlur: 15,
-                dropShadowDistance: 0
-            }
-        });
-        gameOverText.anchor.set(0.5);
-        gameOverText.x = centerX;
-        gameOverText.y = centerY - panelHeight / 2 + 120;
-        gameOverContainer.addChild(gameOverText);
-        
-        // Divider line
-        const divider1 = new PIXI.Graphics();
-        divider1.rect(centerX - panelWidth / 3, centerY - 80, panelWidth / 1.5, 2);
-        divider1.fill({ color: 0x4CAF50, alpha: 0.5 });
-        gameOverContainer.addChild(divider1);
-        
-        // Player name with icon
-        const playerContainer = new PIXI.Container();
-        const playerIcon = new PIXI.Text({
-            text: '👤',
-            style: { fontSize: nameSize }
-        });
-        playerIcon.anchor.set(0.5);
-        playerIcon.x = -nameSize;
-        playerIcon.y = 0;
-        
-        const playerNameText = new PIXI.Text({
-            text: this.username,
-            style: {
-                fontFamily: 'Arial',
-                fontSize: nameSize,
-                fill: '#FFD700',
-                fontWeight: 'bold',
-                stroke: '#8B6914',
-                strokeThickness: 4,
-                dropShadow: true,
-                dropShadowColor: '#000000',
-                dropShadowBlur: 4,
-                dropShadowDistance: 2
-            }
-        });
-        playerNameText.anchor.set(0.5);
-        
-        playerContainer.addChild(playerIcon);
-        playerContainer.addChild(playerNameText);
-        playerContainer.x = centerX;
-        playerContainer.y = centerY - 30;
-        gameOverContainer.addChild(playerContainer);
-        
-        // Score display with trophy
-        const scoreContainer = new PIXI.Container();
-        const trophy = new PIXI.Text({
-            text: '🏆',
-            style: { fontSize: scoreSize * 0.8 }
-        });
-        trophy.anchor.set(0.5);
-        trophy.x = -scoreSize * 1.5;
-        trophy.y = 0;
-        
-        const finalScoreText = new PIXI.Text({
-            text: this.scoreDisplay.score.toString(),
-            style: {
-                fontFamily: 'Arial',
-                fontSize: scoreSize,
-                fill: '#4CAF50',
-                fontWeight: 'bold',
-                stroke: '#1B5E20',
-                strokeThickness: 5,
-                dropShadow: true,
-                dropShadowColor: '#000000',
-                dropShadowBlur: 6,
-                dropShadowDistance: 3
-            }
-        });
-        finalScoreText.anchor.set(0.5);
-        
-        const pointsLabel = new PIXI.Text({
-            text: i18n.t('game.score'),
-            style: {
-                fontFamily: 'Arial',
-                fontSize: scoreSize * 0.4,
-                fill: '#FFFFFF',
-                fontWeight: 'normal'
-            }
-        });
-        pointsLabel.anchor.set(0.5);
-        pointsLabel.x = scoreSize * 1.5;
-        pointsLabel.y = 0;
-        
-        scoreContainer.addChild(trophy);
-        scoreContainer.addChild(finalScoreText);
-        scoreContainer.addChild(pointsLabel);
-        scoreContainer.x = centerX;
-        scoreContainer.y = centerY + 40;
-        gameOverContainer.addChild(scoreContainer);
-        
-        // Divider line 2
-        const divider2 = new PIXI.Graphics();
-        divider2.rect(centerX - panelWidth / 3, centerY + 90, panelWidth / 1.5, 2);
-        divider2.fill({ color: 0xFF6B6B, alpha: 0.5 });
-        gameOverContainer.addChild(divider2);
-        
-        // Warning text with icon
-        const warningContainer = new PIXI.Container();
-        const warningIcon = new PIXI.Text({
-            text: '⚠️',
-            style: { fontSize: warningSize * 1.5 }
-        });
-        warningIcon.anchor.set(0.5);
-        warningIcon.y = -warningSize;
-        
-        const warningText = new PIXI.Text({
-            text: i18n.t('game.warning'),
-            style: {
-                fontFamily: 'Arial',
-                fontSize: warningSize,
-                fill: '#FFD700',
-                fontWeight: 'bold',
-                align: 'center',
-                stroke: '#8B6914',
-                strokeThickness: 3,
-                wordWrap: true,
-                wordWrapWidth: panelWidth - 60
-            }
-        });
-        warningText.anchor.set(0.5);
-        warningText.y = warningSize / 2;
-        
-        warningContainer.addChild(warningIcon);
-        warningContainer.addChild(warningText);
-        warningContainer.x = centerX;
-        warningContainer.y = centerY + 130;
-        gameOverContainer.addChild(warningContainer);
-        
-        // Restart button with background
-        const restartButton = new PIXI.Graphics();
-        const buttonWidth = Math.min(300, panelWidth - 100);
-        const buttonHeight = 60;
-        restartButton.roundRect(
-            centerX - buttonWidth / 2,
-            centerY + panelHeight / 2 - 80,
-            buttonWidth,
-            buttonHeight,
-            15
-        );
-        restartButton.fill({ color: 0x4CAF50 });
-        restartButton.stroke({ color: 0x66BB6A, width: 3 });
-        gameOverContainer.addChild(restartButton);
-        
-        const restartText = new PIXI.Text({
-            text: '🔄 ' + i18n.t('game.restart'),
-            style: {
-                fontFamily: 'Arial',
-                fontSize: restartSize,
-                fill: '#FFFFFF',
-                fontWeight: 'bold',
-                stroke: '#1B5E20',
-                strokeThickness: 3
-            }
-        });
-        restartText.anchor.set(0.5);
-        restartText.x = centerX;
-        restartText.y = centerY + panelHeight / 2 - 50;
-        gameOverContainer.addChild(restartText);
-        
-        this.app.stage.addChild(gameOverContainer);
-        
-        // Make button interactive with hover effect
-        restartButton.eventMode = 'static';
-        restartButton.cursor = 'pointer';
-        
-        restartButton.on('pointerover', () => {
-            restartButton.clear();
-            restartButton.roundRect(
-                centerX - buttonWidth / 2,
-                centerY + panelHeight / 2 - 80,
-                buttonWidth,
-                buttonHeight,
-                15
-            );
-            restartButton.fill({ color: 0x66BB6A });
-            restartButton.stroke({ color: 0x81C784, width: 3 });
-        });
-        
-        restartButton.on('pointerout', () => {
-            restartButton.clear();
-            restartButton.roundRect(
-                centerX - buttonWidth / 2,
-                centerY + panelHeight / 2 - 80,
-                buttonWidth,
-                buttonHeight,
-                15
-            );
-            restartButton.fill({ color: 0x4CAF50 });
-            restartButton.stroke({ color: 0x66BB6A, width: 3 });
-        });
-        
-        restartButton.on('pointerdown', () => {
-            this.app.stage.removeChild(gameOverContainer);
-            this.restart();
-        });
-        
-        // Add pulsing animation to game over text
-        let pulseDirection = 1;
-        const pulseAnimation = () => {
-            if (!gameOverText.parent) return;
-            
-            gameOverText.scale.x += 0.002 * pulseDirection;
-            gameOverText.scale.y += 0.002 * pulseDirection;
-            
-            if (gameOverText.scale.x > 1.1) pulseDirection = -1;
-            if (gameOverText.scale.x < 0.95) pulseDirection = 1;
-        };
-        
-        this.app.ticker.add(pulseAnimation);
     }
 
+    /**
+     * Restart the game
+     */
     restart() {
-        // Clear stage completely
-        this.app.stage.removeChildren();
-        
-        // Reset all game state
-        this.fallingItems = [];
-        this.spawnTimer = 0;
-        this.gameStarted = false;
-        this.background = null;
-        this.player = null;
-        
-        // Reset difficulty
-        this.currentSpeedMultiplier = 1.0;
-        this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
-        
-        // Create new score display
-        this.scoreDisplay = new ScoreDisplay();
-        
+        console.log('Restarting game...');
+
+        // Clean up current game state
+        this.cleanup();
+
+        // Reset game variables
+        this.resetGameState();
+
         // Restart game
         this.start();
+    }
+
+    /**
+     * Clean up game resources
+     */
+    cleanup() {
+        // Remove game loop
+        if (this.gameLoopBound && this.app) {
+            this.app.ticker.remove(this.gameLoopBound);
+            this.gameLoopBound = null;
+        }
+
+        // Clear falling items
+        this.clearFallingItems();
+
+        // Clear stage
+        if (this.app && this.app.stage) {
+            this.app.stage.removeChildren();
+        }
+
+        // Clear UI screens
+        this.uiManager.hideCurrentScreen();
+
+        // Reset references
+        this.background = null;
+        this.player = null;
+        this.scoreDisplay = null;
+    }
+
+    /**
+     * Reset game state to initial values
+     */
+    resetGameState() {
+        this.spawnTimer = 0;
+        this.currentSpeedMultiplier = 1.0;
+        this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
+        this.fallingItems = [];
+
+        // Create new score display
+        this.scoreDisplay = new ScoreDisplay();
+    }
+
+    /**
+     * Complete cleanup and destroy
+     */
+    destroy() {
+        console.log('Destroying game...');
+
+        // Clean up game resources
+        this.cleanup();
+
+        // Remove event listeners
+        if (this.resizeListener) {
+            window.removeEventListener('resize', this.resizeListener);
+            this.resizeListener = null;
+        }
+
+        if (this.orientationListener) {
+            window.removeEventListener('orientationchange', this.orientationListener);
+            this.orientationListener = null;
+        }
+
+        if (this.telegramViewportListener) {
+            window.removeEventListener('telegramViewportChanged', this.telegramViewportListener);
+            this.telegramViewportListener = null;
+        }
+
+        // Destroy managers
+        if (this.stateManager) {
+            this.stateManager.destroy();
+        }
+
+        if (this.uiManager) {
+            this.uiManager.destroy();
+        }
+
+        // Destroy particle system
+        if (this.particleSystem) {
+            // Particle system cleanup if needed
+            this.particleSystem = null;
+        }
+
+        // Destroy PixiJS app
+        if (this.app) {
+            this.app.destroy(true, { children: true, texture: false, baseTexture: false });
+            this.app = null;
+        }
+
+        console.log('Game destroyed successfully');
     }
 }
