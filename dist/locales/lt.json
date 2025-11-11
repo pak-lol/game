@@ -9,7 +9,19 @@
     "warning": "Tu pagavai \"chimke\"!\nGaudyk tik \"vorinio dumai\"!",
     "username": "Žaidėjo vardas",
     "usernamePlaceholder": "Įvesk savo vardą",
-    "usernameRequired": "Prašome įvesti vardą"
+    "usernameRequired": "Prašome įvesti vardą",
+    "yourRank": "Tavo vieta",
+    "outOf": "iš",
+    "newRecord": "NAUJAS REKORDAS!",
+    "topScore": "TOP 10 vieta!"
+  },
+  "leaderboard": {
+    "title": "LYDERIŲ LENTELĖ",
+    "rank": "Vieta",
+    "player": "Žaidėjas",
+    "score": "Taškai",
+    "noScores": "Dar nėra rezultatų",
+    "you": "TU"
   },
   "items": {
     "chimke": "chimke",
