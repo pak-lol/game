@@ -1,6 +1,7 @@
 /**
  * Get safe viewport dimensions
  * Handles Telegram viewport and device safe areas
+ * Normalizes dimensions for consistent difficulty across devices
  */
 function getSafeViewportDimensions() {
     // Check if Telegram Web App is available
@@ -30,12 +31,29 @@ function getSafeViewportDimensions() {
     width = Math.max(320, width);
     height = Math.max(400, height);
 
-    // Ensure reasonable aspect ratio (prevent extreme stretching)
-    const aspectRatio = width / height;
-    if (aspectRatio > 1) {
-        // Landscape - limit width
-        width = Math.min(width, height * 1.5);
+    // NORMALIZE WIDTH FOR CONSISTENT DIFFICULTY
+    // Use a standard width (similar to mobile portrait) regardless of device
+    // This ensures the same difficulty on all devices
+    const STANDARD_WIDTH = 430; // Standard mobile portrait width
+    const MAX_WIDTH = 500; // Maximum width to prevent too wide on tablets
+
+    // Cap width to standard range for consistent gameplay
+    width = Math.min(width, MAX_WIDTH);
+
+    // If screen is wider than standard, use standard width
+    // If screen is narrower, use actual width (for small phones)
+    if (width > STANDARD_WIDTH) {
+        width = STANDARD_WIDTH;
     }
+
+    // Ensure portrait orientation (height should be greater than width)
+    // Prevent landscape by swapping if needed
+    if (width > height) {
+        console.warn('Landscape detected, forcing portrait orientation');
+        [width, height] = [height, width];
+    }
+
+    console.log(`Game dimensions: ${width}x${height}`);
 
     return { width, height };
 }

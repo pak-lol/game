@@ -30,7 +30,8 @@ export class Player {
 
     handleMove(e, canvas) {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
+        // Calculate position relative to canvas logical size, not display size
+        const scaleX = GAME_CONFIG.width / rect.width;
         const mouseX = (e.clientX - rect.left) * scaleX;
         this.updatePosition(mouseX);
     }
@@ -39,7 +40,8 @@ export class Player {
         e.preventDefault();
         if (e.touches.length > 0) {
             const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
+            // Calculate position relative to canvas logical size, not display size
+            const scaleX = GAME_CONFIG.width / rect.width;
             const touchX = (e.touches[0].clientX - rect.left) * scaleX;
             this.updatePosition(touchX);
         }

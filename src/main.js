@@ -33,6 +33,17 @@ window.onload = async () => {
         console.log('Platform:', telegramService.getPlatform());
         console.log('Is Mobile:', telegramService.isMobile());
 
+        // Lock orientation to portrait
+        if (screen.orientation && screen.orientation.lock) {
+            try {
+                await screen.orientation.lock('portrait').catch(err => {
+                    console.log('Orientation lock not supported:', err.message);
+                });
+            } catch (err) {
+                console.log('Could not lock orientation:', err.message);
+            }
+        }
+
         // Get viewport info
         const viewport = telegramService.getViewportDimensions();
         console.log('Viewport dimensions:', viewport);
