@@ -6,6 +6,7 @@ import { FallingItem } from './entities/FallingItem.js';
 import { CollisionSystem } from './systems/CollisionSystem.js';
 import { ParticleSystem } from './systems/ParticleSystem.js';
 import { ScoreDisplay } from './ui/ScoreDisplay.js';
+import { SpeedDisplay } from './ui/SpeedDisplay.js';
 import { i18n } from './utils/i18n.js';
 import { GameStateManager, GameState } from './managers/GameStateManager.js';
 import { ScoreService } from './services/ScoreService.js';
@@ -31,6 +32,7 @@ export class Game {
         // Game entities
         this.player = null;
         this.scoreDisplay = null;
+        this.speedDisplay = null;
         this.fallingItems = [];
 
         // Game state
@@ -165,6 +167,11 @@ export class Game {
                 this.scoreDisplay.text.y = 20;
             }
 
+            // Update speed display position if it exists
+            if (this.speedDisplay) {
+                this.speedDisplay.updatePosition();
+            }
+
             // Update falling items positions proportionally
             if (this.fallingItems.length > 0) {
                 const scaleX = GAME_CONFIG.width / oldWidth;
@@ -212,6 +219,7 @@ export class Game {
         this.createBackground();
         this.createPlayer();
         this.createScoreDisplay();
+        this.createSpeedDisplay();
 
         // Remove old game loop if it exists
         if (this.gameLoopBound) {
@@ -255,6 +263,12 @@ export class Game {
         this.scoreDisplay.addToStage(this.app.stage);
     }
 
+    createSpeedDisplay() {
+        this.speedDisplay = new SpeedDisplay();
+        this.speedDisplay.addToStage(this.app.stage);
+        this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
+    }
+
     spawnFallingItem() {
         // Randomly choose between the two types
         const types = Object.values(GAME_CONFIG.itemTypes);
@@ -286,6 +300,11 @@ export class Game {
         // Only update if playing
         if (!this.stateManager.isPlaying() || !this.scoreDisplay || !this.player) {
             return;
+        }
+
+        // Animate speed display
+        if (this.speedDisplay) {
+            this.speedDisplay.animate(delta.deltaTime);
         }
 
         // Spawn falling items
@@ -356,13 +375,18 @@ export class Game {
             this.currentSpeedMultiplier + speedIncrease,
             DIFFICULTY_CONFIG.maxSpeedMultiplier
         );
-        
+
         // Decrease spawn interval (spawn faster)
         this.currentSpawnInterval = Math.max(
             this.currentSpawnInterval - DIFFICULTY_CONFIG.spawnRateIncrease,
             DIFFICULTY_CONFIG.minSpawnInterval
         );
-        
+
+        // Update speed display
+        if (this.speedDisplay) {
+            this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
+        }
+
         console.log(`Difficulty increased! Speed: ${this.currentSpeedMultiplier.toFixed(2)}x, Spawn interval: ${this.currentSpawnInterval}`);
     }
 
@@ -457,6 +481,7 @@ export class Game {
         this.background = null;
         this.player = null;
         this.scoreDisplay = null;
+        this.speedDisplay = null;
     }
 
     /**
@@ -470,6 +495,9 @@ export class Game {
 
         // Create new score display
         this.scoreDisplay = new ScoreDisplay();
+
+        // Reset speed display (will be created on start)
+        this.speedDisplay = null;
     }
 
     /**
