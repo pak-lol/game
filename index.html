@@ -6,376 +6,198 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0F2027">
+    <meta name="theme-color" content="#000000">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <title>Žolės Gaudytojas</title>
+    
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            position: fixed;
-            background: linear-gradient(to bottom, #0F2027, #203A43, #2C5364);
-            font-family: 'Arial', sans-serif;
-            touch-action: none;
-            /* Support for safe area insets (notch) */
-            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-        }
-
-        body {
-            /* Use Telegram's viewport height if available, fallback to 100vh */
-            height: var(--tg-viewport-height, 100vh);
-            min-height: var(--tg-viewport-stable-height, 100vh);
-        }
-
-        #gameContainer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            /* Telegram safe area */
-            padding-top: var(--tg-safe-area-inset-top, 0px);
-            padding-bottom: var(--tg-safe-area-inset-bottom, 0px);
-        }
-
-        #gameContainer canvas {
-            display: block;
-            width: 100% !important;
-            height: 100% !important;
-            touch-action: none;
-            object-fit: contain;
-        }
-
-        #startScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, rgba(15, 32, 39, 0.95), rgba(44, 83, 100, 0.95));
-            backdrop-filter: blur(10px);
-            z-index: 10;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        #startScreen.hidden {
-            display: none;
-        }
-
-        .start-content {
-            max-width: 600px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .emoji-container {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 10px;
-        }
-
-        .emoji {
-            font-size: clamp(40px, 10vw, 60px);
-            animation: float 3s ease-in-out infinite;
-        }
-
-        .emoji:nth-child(2) {
-            animation-delay: 0.5s;
-        }
-
-        .emoji:nth-child(3) {
-            animation-delay: 1s;
-        }
-
-        h1 {
-            color: #4CAF50;
-            margin: 0 0 10px 0;
-            font-size: clamp(32px, 8vw, 56px);
-            text-shadow: 0 0 30px rgba(76, 175, 80, 0.8), 0 0 10px rgba(76, 175, 80, 0.5);
-            letter-spacing: 3px;
-            text-align: center;
-            animation: glow 2s ease-in-out infinite;
-        }
-
-        .subtitle {
-            color: #FFD700;
-            font-size: clamp(14px, 3vw, 18px);
-            text-align: center;
-            margin-bottom: 20px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        .game-info {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: clamp(12px, 2.5vw, 14px);
-            text-align: center;
-            margin-bottom: 15px;
-            line-height: 1.6;
-        }
-
-        .game-info strong {
-            color: #4CAF50;
-        }
-
-        .username-container {
-            width: 100%;
-            max-width: 400px;
-            margin: 10px 0;
-        }
-
-        #usernameInput {
-            width: 100%;
-            padding: 15px 20px;
-            font-size: clamp(16px, 4vw, 20px);
-            background: rgba(0, 0, 0, 0.5);
-            border: 3px solid rgba(76, 175, 80, 0.5);
-            border-radius: 15px;
-            color: white;
-            text-align: center;
-            outline: none;
-            transition: all 0.3s;
-            font-family: 'Arial', sans-serif;
-        }
-
-        #usernameInput::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        #usernameInput:focus {
-            border-color: #4CAF50;
-            background: rgba(0, 0, 0, 0.7);
-            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
-        }
-
-        .menu-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            width: 100%;
-            max-width: 400px;
-            margin-top: 20px;
-        }
-
-        .menu-button {
-            padding: 18px 40px;
-            font-size: clamp(18px, 4vw, 22px);
-            font-weight: bold;
-            color: white;
-            border: 3px solid;
-            border-radius: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            touch-action: manipulation;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-family: 'Arial', sans-serif;
-        }
-
-        .menu-button:active {
-            transform: scale(0.97);
-        }
-
-        .menu-button-icon {
-            font-size: clamp(24px, 5vw, 28px);
-        }
-
-        #startButton {
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
-            border-color: #66BB6A;
-            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        #startButton:active {
-            background: linear-gradient(135deg, #66BB6A, #4CAF50);
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.6);
-        }
-
-        #startButton:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            animation: none;
-        }
-
-        #itemsInfoButton {
-            background: linear-gradient(135deg, #2196F3, #1565C0);
-            border-color: #42A5F5;
-            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
-        }
-
-        #itemsInfoButton:active {
-            background: linear-gradient(135deg, #42A5F5, #2196F3);
-            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.5);
-        }
-
-        #leaderboardButton {
-            background: linear-gradient(135deg, #FF9800, #E65100);
-            border-color: #FFB74D;
-            box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
-        }
-
-        #leaderboardButton:active {
-            background: linear-gradient(135deg, #FFB74D, #FF9800);
-            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.5);
-        }
-
-        #optionsButton {
-            background: linear-gradient(135deg, #9C27B0, #6A1B9A);
-            border-color: #BA68C8;
-            box-shadow: 0 8px 25px rgba(156, 39, 176, 0.4);
-        }
-
-        #optionsButton:active {
-            background: linear-gradient(135deg, #BA68C8, #9C27B0);
-            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.5);
-        }
-
-        .falling-leaves {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-        }
-
-        .falling-leaf {
-            position: absolute;
-            font-size: 30px;
-            animation: fall linear infinite;
-            opacity: 0.3;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(10deg); }
-        }
-
-        @keyframes glow {
-            0%, 100% { text-shadow: 0 0 30px rgba(76, 175, 80, 0.8), 0 0 10px rgba(76, 175, 80, 0.5); }
-            50% { text-shadow: 0 0 40px rgba(76, 175, 80, 1), 0 0 20px rgba(76, 175, 80, 0.8); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        @keyframes fall {
-            0% {
-                top: -50px;
-                transform: translateX(0) rotate(0deg);
-            }
-            100% {
-                top: 100%;
-                transform: translateX(100px) rotate(360deg);
-            }
-        }
-
-        /* Prevent pull-to-refresh on mobile */
-        body {
-            overscroll-behavior: none;
-        }
-
-        /* Hide scrollbars */
-        ::-webkit-scrollbar {
-            display: none;
-        }
-    </style>
+    
+    <!-- Tailwind CSS -->
+    <link rel="stylesheet" href="/src/styles.css">
 </head>
-<body>
-    <div id="gameContainer">
-        <div id="startScreen">
-            <div class="falling-leaves" id="fallingLeaves"></div>
-            <div class="start-content">
-                <div class="emoji-container">
-                    <div class="emoji">🌿</div>
-                    <div class="emoji">🍃</div>
-                    <div class="emoji">🌿</div>
-                </div>
-                <h1 id="gameTitle">Žolės Gaudytojas</h1>
-                <p class="subtitle">Gaudyk krentančius daiktus ir pelnysi taškus!</p>
+<body class="bg-black overflow-hidden fixed inset-0 touch-none no-select">
+    <!-- Main gradient background -->
+    <div class="fixed inset-0 bg-gradient-dark"></div>
+    
+    <!-- Animated floating orbs for depth -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <!-- Large orb top left -->
+        <div class="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-float-bg"></div>
+        <!-- Large orb bottom right -->
+        <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl animate-float-bg" style="animation-delay: 2s; animation-duration: 25s;"></div>
+        <!-- Medium orb center -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-emerald-400/5 rounded-full blur-3xl animate-float-bg" style="animation-delay: 4s; animation-duration: 30s;"></div>
+    </div>
+    
+    <!-- Subtle grid pattern overlay -->
+    <div class="fixed inset-0 opacity-[0.03]" style="background-image: 
+        linear-gradient(rgba(16, 185, 129, 0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 185, 129, 0.5) 1px, transparent 1px);
+        background-size: 50px 50px;"></div>
+    
+    <!-- Vignette effect -->
+    <div class="fixed inset-0 pointer-events-none" style="background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);"></div>
+    
+    <!-- Game Canvas Container -->
+    <div id="gameContainer" class="fixed inset-0 flex items-center justify-center z-0">
+        <!-- Canvas will be inserted here -->
+    </div>
 
-                <p class="game-info">
-                    Valdyk krepšelį ir gaudyk <strong>gerus daiktus</strong> 🌿<br>
-                    Uždirbk taškus ir tapk lyderiu! 🏆
-                </p>
+    <!-- Start Screen -->
+    <div id="startScreen" class="fixed inset-0 z-10 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <!-- Animated Background -->
+        <div id="fallingLeaves" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+        
+        <!-- Dark glass morphism overlay -->
+        <div class="absolute inset-0 glass-strong"></div>
 
-                <div class="username-container">
-                    <input
-                        type="text"
-                        id="usernameInput"
-                        placeholder="Įvesk savo vardą"
-                        maxlength="20"
-                        autocomplete="off"
-                    />
-                </div>
+        <!-- Main Content -->
+        <div class="relative z-10 w-full max-w-md mx-auto animate-slide-up">
+            <!-- Logo/Emoji Section -->
+            <div class="flex justify-center gap-4 mb-6">
+                <div class="text-5xl sm:text-6xl animate-float">🌿</div>
+                <div class="text-5xl sm:text-6xl animate-float" style="animation-delay: 0.5s">🍃</div>
+                <div class="text-5xl sm:text-6xl animate-float" style="animation-delay: 1s">🌿</div>
+            </div>
 
-                <div class="menu-buttons">
-                    <button id="startButton" class="menu-button">
-                        <span class="menu-button-icon">🎮</span>
-                        <span>Pradėti Žaidimą</span>
-                    </button>
-                    <button id="itemsInfoButton" class="menu-button">
-                        <span class="menu-button-icon">📋</span>
-                        <span>Daiktų Informacija</span>
-                    </button>
-                    <button id="leaderboardButton" class="menu-button">
-                        <span class="menu-button-icon">🏆</span>
-                        <span>Lyderiai</span>
-                    </button>
-                    <button id="optionsButton" class="menu-button">
-                        <span class="menu-button-icon">⚙️</span>
-                        <span>Nustatymai</span>
-                    </button>
-                </div>
+
+            <!-- Username Input -->
+            <div class="mb-6">
+                <input
+                    type="text"
+                    id="usernameInput"
+                    placeholder="Įvesk savo vardą"
+                    maxlength="20"
+                    autocomplete="off"
+                    class="w-full px-5 py-4 text-center text-lg sm:text-xl font-medium
+                           bg-gradient-to-br from-emerald-950/50 to-emerald-900/30 
+                           border-2 border-emerald-500/30 rounded-xl
+                           text-white placeholder-gray-500
+                           focus:outline-none focus:border-emerald-500/60 
+                           focus:from-emerald-950/70 focus:to-emerald-900/50
+                           focus:shadow-lg focus:shadow-emerald-500/20
+                           transition-all duration-300
+                           backdrop-blur-sm shadow-lg shadow-black/50"
+                />
+            </div>
+
+            <!-- Menu Buttons -->
+            <div class="space-y-3">
+                <!-- Start Button -->
+                <button id="startButton" 
+                        class="w-full px-6 py-4 rounded-xl font-bold text-lg sm:text-xl
+                               bg-gradient-to-br from-emerald-600 to-emerald-700
+                               border-2 border-emerald-500/40
+                               text-white uppercase tracking-wider
+                               hover:from-emerald-500 hover:to-emerald-600
+                               hover:border-emerald-400/60
+                               hover:shadow-lg hover:shadow-emerald-500/30
+                               active:scale-[0.97]
+                               transition-all duration-200
+                               flex items-center justify-center gap-3
+                               shadow-lg shadow-black/50
+                               animate-pulse-glow
+                               disabled:opacity-50 disabled:cursor-not-allowed disabled:animate-none">
+                    <span class="text-2xl">🎮</span>
+                    <span>Pradėti Žaidimą</span>
+                </button>
+
+                <!-- Leaderboard Button -->
+                <button id="leaderboardButton"
+                        class="w-full px-6 py-3.5 rounded-xl font-bold text-base sm:text-lg
+                               bg-gradient-to-br from-emerald-950/40 to-emerald-900/20
+                               border-2 border-emerald-800/40
+                               text-gray-300 uppercase tracking-wide
+                               hover:from-emerald-900/50 hover:to-emerald-800/30
+                               hover:border-emerald-700/60
+                               hover:text-white
+                               hover:shadow-lg hover:shadow-emerald-500/20
+                               active:scale-[0.97]
+                               transition-all duration-200
+                               flex items-center justify-center gap-3
+                               shadow-lg shadow-black/50 backdrop-blur-sm">
+                    <span class="text-xl">🏆</span>
+                    <span>Lyderių Lentelė</span>
+                </button>
+
+                <!-- Contest Info Button -->
+                <button id="contestInfoButton"
+                        class="w-full px-6 py-3.5 rounded-xl font-bold text-base sm:text-lg
+                               bg-gradient-to-br from-emerald-950/40 to-emerald-900/20
+                               border-2 border-emerald-800/40
+                               text-gray-300 uppercase tracking-wide
+                               hover:from-emerald-900/50 hover:to-emerald-800/30
+                               hover:border-emerald-700/60
+                               hover:text-white
+                               hover:shadow-lg hover:shadow-emerald-500/20
+                               active:scale-[0.97]
+                               transition-all duration-200
+                               flex items-center justify-center gap-3
+                               shadow-lg shadow-black/50 backdrop-blur-sm">
+                    <span class="text-xl">ℹ️</span>
+                    <span>Konkurso Informacija</span>
+                </button>
+
+                <!-- Options Button -->
+                <button id="optionsButton"
+                        class="w-full px-6 py-3.5 rounded-xl font-bold text-base sm:text-lg
+                               bg-gradient-to-br from-emerald-950/40 to-emerald-900/20
+                               border-2 border-emerald-800/40
+                               text-gray-300 uppercase tracking-wide
+                               hover:from-emerald-900/50 hover:to-emerald-800/30
+                               hover:border-emerald-700/60
+                               hover:text-white
+                               hover:shadow-lg hover:shadow-emerald-500/20
+                               active:scale-[0.97]
+                               transition-all duration-200
+                               flex items-center justify-center gap-3
+                               shadow-lg shadow-black/50 backdrop-blur-sm">
+                    <span class="text-xl">⚙️</span>
+                    <span>Nustatymai</span>
+                </button>
+            </div>
+
+            <!-- Version/Credits -->
+            <div class="mt-6 text-center text-gray-600 text-xs">
+                t.me/vorinizz
             </div>
         </div>
     </div>
+
+    <!-- Falling Leaves Animation Script -->
     <script>
-        // Animated falling leaves in background
+        // Create animated falling leaves
         const fallingLeavesContainer = document.getElementById('fallingLeaves');
         const leafEmojis = ['🌿', '🍃', '🍂'];
         
         for (let i = 0; i < 15; i++) {
             const leaf = document.createElement('div');
-            leaf.className = 'falling-leaf';
+            leaf.className = 'absolute text-3xl animate-fall';
             leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
             leaf.style.left = Math.random() * 100 + '%';
             leaf.style.animationDuration = (Math.random() * 5 + 5) + 's';
             leaf.style.animationDelay = Math.random() * 5 + 's';
             fallingLeavesContainer.appendChild(leaf);
         }
+
+        // Add hidden class functionality
+        const startScreen = document.getElementById('startScreen');
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    if (startScreen.classList.contains('hidden')) {
+                        startScreen.style.display = 'none';
+                    } else {
+                        startScreen.style.display = 'flex';
+                    }
+                }
+            });
+        });
+        observer.observe(startScreen, { attributes: true });
     </script>
+
+    <!-- Main Game Script -->
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

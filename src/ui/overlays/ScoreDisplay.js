@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { i18n } from '../utils/i18n.js';
+import { i18n } from '../../utils/i18n.js';
 
 export class ScoreDisplay {
     constructor() {

@@ -1,7 +1,4 @@
-import { GameOverScreen } from '../ui/GameOverScreen.js';
-import { ItemsInfoScreen } from '../ui/ItemsInfoScreen.js';
-import { MenuLeaderboardScreen } from '../ui/MenuLeaderboardScreen.js';
-import { OptionsScreen } from '../ui/OptionsScreen.js';
+// GameOverScreen removed - now using GameOverModal
 
 /**
  * Manages UI screens and transitions
@@ -29,29 +26,7 @@ export class UIManager {
         this.stage = stage;
     }
 
-    /**
-     * Show game over screen
-     * @param {string} username - Player username
-     * @param {number} score - Player score
-     * @param {Object} scoreData - Score data with rank info
-     * @param {Array} leaderboard - Leaderboard entries
-     * @param {Function} onRestart - Restart callback
-     */
-    showGameOverScreen(username, score, scoreData, leaderboard, onRestart) {
-        this.hideCurrentScreen();
-
-        this.currentScreen = new GameOverScreen(
-            username,
-            score,
-            scoreData,
-            leaderboard,
-            onRestart
-        );
-
-        if (this.stage) {
-            this.currentScreen.addToStage(this.stage);
-        }
-    }
+    // showGameOverScreen removed - now using GameOverModal directly in Game.js
 
     /**
      * Hide current screen
@@ -91,52 +66,7 @@ export class UIManager {
         }
     }
 
-    /**
-     * Show items info screen
-     * @param {Function} onBack - Back callback
-     */
-    showItemsInfoScreen(onBack) {
-        this.hideCurrentScreen();
 
-        this.currentScreen = new ItemsInfoScreen(onBack);
-
-        if (this.stage) {
-            this.currentScreen.addToStage(this.stage);
-        }
-    }
-
-    /**
-     * Show menu leaderboard screen
-     * @param {Function} onBack - Back callback
-     */
-    showMenuLeaderboardScreen(onBack) {
-        this.hideCurrentScreen();
-
-        if (!this.scoreService) {
-            console.error('Score service not set in UIManager');
-            return;
-        }
-
-        this.currentScreen = new MenuLeaderboardScreen(this.scoreService, onBack);
-
-        if (this.stage) {
-            this.currentScreen.addToStage(this.stage);
-        }
-    }
-
-    /**
-     * Show options screen
-     * @param {Function} onBack - Back callback
-     */
-    showOptionsScreen(onBack) {
-        this.hideCurrentScreen();
-
-        this.currentScreen = new OptionsScreen(onBack);
-
-        if (this.stage) {
-            this.currentScreen.addToStage(this.stage);
-        }
-    }
 
     /**
      * Clean up all screens

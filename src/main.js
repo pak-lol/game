@@ -1,9 +1,15 @@
 import { Game } from './Game.js';
 import { TelegramService } from './services/TelegramService.js';
+import { wsService } from './services/WebSocketService.js';
 
 // Initialize Telegram first
 const telegramService = new TelegramService();
 telegramService.init();
+
+// Connect to WebSocket server
+wsService.connect().catch(err => {
+    console.warn('WebSocket connection failed, will use localStorage fallback:', err);
+});
 
 // Create game instance
 const game = new Game();

@@ -1,6 +1,7 @@
 {
   "name": "weed-catcher-game",
   "version": "1.0.0",
+  "type": "module",
   "description": "PixiJS weed catching game",
   "main": "index.js",
   "scripts": {
@@ -16,6 +17,8 @@
     "vite": "^5.4.11"
   },
   "dependencies": {
-    "pixi.js": "^8.5.2"
+    "@tailwindcss/vite": "^4.1.17",
+    "pixi.js": "^8.5.2",
+    "tailwindcss": "^4.1.17"
   }
 }

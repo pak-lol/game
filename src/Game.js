@@ -14,14 +14,18 @@ import { Player } from './entities/Player.js';
 import { FallingItem } from './entities/FallingItem.js';
 import { CollisionSystem } from './systems/CollisionSystem.js';
 import { ParticleSystem } from './systems/ParticleSystem.js';
-import { ScoreDisplay } from './ui/ScoreDisplay.js';
-import { SpeedDisplay } from './ui/SpeedDisplay.js';
-import { PowerUpTimer } from './ui/PowerUpTimer.js';
-import { ScorePopup } from './ui/ScorePopup.js';
+import { ScoreDisplay } from './ui/overlays/ScoreDisplay.js';
+import { SpeedDisplay } from './ui/overlays/SpeedDisplay.js';
+import { PowerUpTimer } from './ui/overlays/PowerUpTimer.js';
+import { ScorePopup } from './ui/overlays/ScorePopup.js';
 import { i18n } from './utils/i18n.js';
 import { GameStateManager, GameState } from './managers/GameStateManager.js';
 import { ScoreService } from './services/ScoreService.js';
 import { UIManager } from './managers/UIManager.js';
+import { OptionsModal } from './ui/modals/OptionsModal.js';
+import { ContestInfoModal } from './ui/modals/ContestInfoModal.js';
+import { LeaderboardModal } from './ui/modals/LeaderboardModal.js';
+import { GameOverModal } from './ui/modals/GameOverModal.js';
 
 /**
  * Main Game class - orchestrates all game systems
@@ -118,8 +122,8 @@ export class Game {
             document.getElementById('startButton').addEventListener('click', () => this.handleStartClick());
 
             // Setup menu buttons
-            document.getElementById('itemsInfoButton').addEventListener('click', () => this.showItemsInfo());
-            document.getElementById('leaderboardButton').addEventListener('click', () => this.showMenuLeaderboard());
+            document.getElementById('leaderboardButton').addEventListener('click', () => this.showLeaderboard());
+            document.getElementById('contestInfoButton').addEventListener('click', () => this.showContestInfo());
             document.getElementById('optionsButton').addEventListener('click', () => this.showOptions());
 
             // Allow Enter key to start game
@@ -159,36 +163,35 @@ export class Game {
         this.start();
     }
 
+
+
     /**
-     * Show items information screen
+     * Show leaderboard modal
      */
-    showItemsInfo() {
-        this.uiManager.hideStartScreen();
-        this.uiManager.showItemsInfoScreen(() => {
-            this.uiManager.hideCurrentScreen();
-            this.uiManager.showStartScreen();
+    showLeaderboard() {
+        const leaderboardModal = new LeaderboardModal();
+        leaderboardModal.show(() => {
+            // Modal closed callback
         });
     }
 
     /**
-     * Show menu leaderboard
+     * Show contest info modal
      */
-    showMenuLeaderboard() {
-        this.uiManager.hideStartScreen();
-        this.uiManager.showMenuLeaderboardScreen(() => {
-            this.uiManager.hideCurrentScreen();
-            this.uiManager.showStartScreen();
+    showContestInfo() {
+        const contestInfoModal = new ContestInfoModal();
+        contestInfoModal.show(() => {
+            // Modal closed callback
         });
     }
 
     /**
-     * Show options screen
+     * Show options modal
      */
     showOptions() {
-        this.uiManager.hideStartScreen();
-        this.uiManager.showOptionsScreen(() => {
-            this.uiManager.hideCurrentScreen();
-            this.uiManager.showStartScreen();
+        const optionsModal = new OptionsModal();
+        optionsModal.show(() => {
+            // Modal closed callback
         });
     }
 
@@ -260,9 +263,18 @@ export class Game {
     }
 
     updateUITranslations() {
-        document.getElementById('gameTitle').textContent = i18n.t('game.title');
-        document.getElementById('startButton').textContent = i18n.t('game.start');
-        document.getElementById('usernameInput').placeholder = i18n.t('game.usernamePlaceholder');
+        // Update button text content (keeping icons)
+        const startBtn = document.getElementById('startButton');
+        if (startBtn) {
+            const icon = startBtn.querySelector('span:first-child');
+            const text = startBtn.querySelector('span:last-child');
+            if (text) text.textContent = i18n.t('game.start');
+        }
+        
+        const usernameInput = document.getElementById('usernameInput');
+        if (usernameInput) {
+            usernameInput.placeholder = i18n.t('game.usernamePlaceholder');
+        }
     }
 
     /**
@@ -622,12 +634,29 @@ export class Game {
         // Stop all falling items
         this.clearFallingItems();
 
-        // Save score and get leaderboard
-        const scoreData = this.scoreService.saveScore(this.username, this.scoreDisplay.score);
-        const leaderboard = this.scoreService.getTopScores(10);
+        // Get Telegram data if available
+        const telegramData = this.telegramService ? {
+            userId: this.telegramService.getUser()?.id,
+            username: this.telegramService.getUser()?.username
+        } : {};
 
-        // Show game over screen with leaderboard
-        this.showGameOverScreen(scoreData, leaderboard);
+        // Save score and get leaderboard (async)
+        this.scoreService.saveScore(this.username, this.scoreDisplay.score, telegramData)
+            .then(scoreData => {
+                return this.scoreService.getTopScores(10).then(leaderboard => {
+                    // Show game over screen with leaderboard
+                    this.showGameOverScreen(scoreData, leaderboard);
+                });
+            })
+            .catch(error => {
+                console.error('Error saving score:', error);
+                // Show game over screen anyway with empty leaderboard
+                this.showGameOverScreen({ 
+                    username: this.username, 
+                    score: this.scoreDisplay.score, 
+                    rank: 0 
+                }, []);
+            });
     }
 
     /**
@@ -661,13 +690,14 @@ export class Game {
      * @param {Array} leaderboard - Leaderboard entries
      */
     showGameOverScreen(scoreData, leaderboard) {
-        this.uiManager.showGameOverScreen(
+        const gameOverModal = new GameOverModal(
             this.username,
             this.scoreDisplay.score,
             scoreData,
             leaderboard,
             () => this.restart()
         );
+        gameOverModal.show();
     }
 
     /**

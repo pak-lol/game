@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
-import { GAME_CONFIG } from '../config.js';
-import { i18n } from '../utils/i18n.js';
+import { GAME_CONFIG } from '../../config.js';
+import { i18n } from '../../utils/i18n.js';
 
 /**
  * Beautiful speed indicator display

@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
-import { GAME_CONFIG } from '../config.js';
-import { i18n } from '../utils/i18n.js';
+import { GAME_CONFIG } from '../../config.js';
+import { i18n } from '../../utils/i18n.js';
 
 /**
  * Beautiful power-up timer display with countdown
@@ -87,7 +87,7 @@ export class PowerUpTimer {
      */
     start(powerUpId, duration) {
         // Import config dynamically
-        import('../config.js').then(({ POWERUPS_CONFIG }) => {
+        import('../../config.js').then(({ POWERUPS_CONFIG }) => {
             const config = POWERUPS_CONFIG[powerUpId];
             if (!config) {
                 console.error(`Power-up config not found: ${powerUpId}`);

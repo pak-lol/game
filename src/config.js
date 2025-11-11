@@ -58,6 +58,16 @@ export const GAME_CONFIG = {
 };
 
 /**
+ * WebSocket Configuration
+ */
+export const WS_CONFIG = {
+    // Use secure WebSocket (wss://) for production
+    url: window.location.hostname === 'localhost' 
+        ? 'ws://localhost:8080'
+        : 'wss://server.pax.lt:8080'
+};
+
+/**
  * Update dimensions on resize or Telegram viewport change
  */
 export function updateGameDimensions() {
