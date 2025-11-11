@@ -194,27 +194,51 @@
             box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
         }
 
-        #startButton {
-            padding: 20px 60px;
-            font-size: clamp(24px, 5vw, 32px);
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+        }
+
+        .menu-button {
+            padding: 18px 40px;
+            font-size: clamp(18px, 4vw, 22px);
             font-weight: bold;
-            background: linear-gradient(135deg, #4CAF50, #2E7D32);
             color: white;
-            border: 4px solid #66BB6A;
-            border-radius: 20px;
+            border: 3px solid;
+            border-radius: 15px;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             touch-action: manipulation;
-            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .menu-button:active {
+            transform: scale(0.97);
+        }
+
+        .menu-button-icon {
+            font-size: clamp(24px, 5vw, 28px);
+        }
+
+        #startButton {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            border-color: #66BB6A;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
             animation: pulse 2s ease-in-out infinite;
         }
 
         #startButton:active {
             background: linear-gradient(135deg, #66BB6A, #4CAF50);
-            transform: scale(0.95);
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.6);
         }
 
@@ -222,6 +246,39 @@
             opacity: 0.5;
             cursor: not-allowed;
             animation: none;
+        }
+
+        #itemsInfoButton {
+            background: linear-gradient(135deg, #2196F3, #1565C0);
+            border-color: #42A5F5;
+            box-shadow: 0 8px 25px rgba(33, 150, 243, 0.4);
+        }
+
+        #itemsInfoButton:active {
+            background: linear-gradient(135deg, #42A5F5, #2196F3);
+            box-shadow: 0 4px 15px rgba(33, 150, 243, 0.5);
+        }
+
+        #leaderboardButton {
+            background: linear-gradient(135deg, #FF9800, #E65100);
+            border-color: #FFB74D;
+            box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
+        }
+
+        #leaderboardButton:active {
+            background: linear-gradient(135deg, #FFB74D, #FF9800);
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.5);
+        }
+
+        #optionsButton {
+            background: linear-gradient(135deg, #9C27B0, #6A1B9A);
+            border-color: #BA68C8;
+            box-shadow: 0 8px 25px rgba(156, 39, 176, 0.4);
+        }
+
+        #optionsButton:active {
+            background: linear-gradient(135deg, #BA68C8, #9C27B0);
+            box-shadow: 0 4px 15px rgba(156, 39, 176, 0.5);
         }
 
         .falling-leaves {
@@ -315,16 +372,33 @@
                 </div>
 
                 <div class="username-container">
-                    <input 
-                        type="text" 
-                        id="usernameInput" 
+                    <input
+                        type="text"
+                        id="usernameInput"
                         placeholder="Įvesk savo vardą"
                         maxlength="20"
                         autocomplete="off"
                     />
                 </div>
 
-                <button id="startButton">Pradėti Žaidimą</button>
+                <div class="menu-buttons">
+                    <button id="startButton" class="menu-button">
+                        <span class="menu-button-icon">🎮</span>
+                        <span>Pradėti Žaidimą</span>
+                    </button>
+                    <button id="itemsInfoButton" class="menu-button">
+                        <span class="menu-button-icon">📋</span>
+                        <span>Daiktų Informacija</span>
+                    </button>
+                    <button id="leaderboardButton" class="menu-button">
+                        <span class="menu-button-icon">🏆</span>
+                        <span>Lyderiai</span>
+                    </button>
+                    <button id="optionsButton" class="menu-button">
+                        <span class="menu-button-icon">⚙️</span>
+                        <span>Nustatymai</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

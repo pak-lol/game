@@ -16,6 +16,20 @@
     "newRecord": "NAUJAS REKORDAS!",
     "topScore": "TOP 10 vieta!"
   },
+  "menu": {
+    "startGame": "Pradėti Žaidimą",
+    "itemsInfo": "Daiktų Informacija",
+    "leaderboard": "Lyderiai",
+    "options": "Nustatymai",
+    "back": "Atgal"
+  },
+  "options": {
+    "sound": "Garsai",
+    "music": "Muzika",
+    "on": "Įjungta",
+    "off": "Išjungta",
+    "comingSoon": "Garsai bus pridėti netrukus!"
+  },
   "leaderboard": {
     "title": "LYDERIŲ LENTELĖ",
     "rank": "Vieta",

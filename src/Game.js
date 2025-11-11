@@ -109,12 +109,18 @@ export class Game {
             // Initialize systems
             this.particleSystem = new ParticleSystem(this.app);
             this.uiManager.setStage(this.app.stage);
+            this.uiManager.setScoreService(this.scoreService);
 
             // Setup resize handler
             this.setupResizeHandler();
 
             // Setup start button
             document.getElementById('startButton').addEventListener('click', () => this.handleStartClick());
+
+            // Setup menu buttons
+            document.getElementById('itemsInfoButton').addEventListener('click', () => this.showItemsInfo());
+            document.getElementById('leaderboardButton').addEventListener('click', () => this.showMenuLeaderboard());
+            document.getElementById('optionsButton').addEventListener('click', () => this.showOptions());
 
             // Allow Enter key to start game
             document.getElementById('usernameInput').addEventListener('keypress', (e) => {
@@ -136,7 +142,7 @@ export class Game {
     handleStartClick() {
         const usernameInput = document.getElementById('usernameInput');
         const username = usernameInput.value.trim();
-        
+
         if (!username) {
             // Show error
             usernameInput.style.borderColor = '#FF6B6B';
@@ -147,10 +153,43 @@ export class Game {
             }, 2000);
             return;
         }
-        
+
         this.username = username;
         console.log('Starting game for player:', this.username);
         this.start();
+    }
+
+    /**
+     * Show items information screen
+     */
+    showItemsInfo() {
+        this.uiManager.hideStartScreen();
+        this.uiManager.showItemsInfoScreen(() => {
+            this.uiManager.hideCurrentScreen();
+            this.uiManager.showStartScreen();
+        });
+    }
+
+    /**
+     * Show menu leaderboard
+     */
+    showMenuLeaderboard() {
+        this.uiManager.hideStartScreen();
+        this.uiManager.showMenuLeaderboardScreen(() => {
+            this.uiManager.hideCurrentScreen();
+            this.uiManager.showStartScreen();
+        });
+    }
+
+    /**
+     * Show options screen
+     */
+    showOptions() {
+        this.uiManager.hideStartScreen();
+        this.uiManager.showOptionsScreen(() => {
+            this.uiManager.hideCurrentScreen();
+            this.uiManager.showStartScreen();
+        });
     }
 
     /**
