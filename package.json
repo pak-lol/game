@@ -1,0 +1,21 @@
+{
+  "name": "weed-catcher-game",
+  "version": "1.0.0",
+  "description": "PixiJS weed catching game",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "deploy": "./deploy.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^5.4.11"
+  },
+  "dependencies": {
+    "pixi.js": "^8.5.2"
+  }
+}
