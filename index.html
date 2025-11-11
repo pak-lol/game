@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0F2027">
+    <title>Žolės Gaudytojas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            background: linear-gradient(to bottom, #0F2027, #203A43, #2C5364);
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+        }
+
+        #gameContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #gameContainer canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            touch-action: none;
+        }
+
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(15, 32, 39, 0.95), rgba(44, 83, 100, 0.95));
+            backdrop-filter: blur(10px);
+            z-index: 10;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        #startScreen.hidden {
+            display: none;
+        }
+
+        .start-content {
+            max-width: 600px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .emoji-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .emoji {
+            font-size: clamp(40px, 10vw, 60px);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .emoji:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .emoji:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin: 0 0 10px 0;
+            font-size: clamp(32px, 8vw, 56px);
+            text-shadow: 0 0 30px rgba(76, 175, 80, 0.8), 0 0 10px rgba(76, 175, 80, 0.5);
+            letter-spacing: 3px;
+            text-align: center;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        .subtitle {
+            color: #FFD700;
+            font-size: clamp(14px, 3vw, 18px);
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .instructions {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(76, 175, 80, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .instruction-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+            color: white;
+            font-size: clamp(14px, 3vw, 16px);
+        }
+
+        .instruction-icon {
+            font-size: clamp(30px, 6vw, 40px);
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .good-item {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .bad-item {
+            color: #FF6B6B;
+            font-weight: bold;
+        }
+
+        #startButton {
+            padding: 20px 60px;
+            font-size: clamp(24px, 5vw, 32px);
+            font-weight: bold;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            border: 4px solid #66BB6A;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            touch-action: manipulation;
+            margin-top: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        #startButton:active {
+            background: linear-gradient(135deg, #66BB6A, #4CAF50);
+            transform: scale(0.95);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.6);
+        }
+
+        .falling-leaves {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .falling-leaf {
+            position: absolute;
+            font-size: 30px;
+            animation: fall linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(10deg); }
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 30px rgba(76, 175, 80, 0.8), 0 0 10px rgba(76, 175, 80, 0.5); }
+            50% { text-shadow: 0 0 40px rgba(76, 175, 80, 1), 0 0 20px rgba(76, 175, 80, 0.8); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes fall {
+            0% {
+                top: -50px;
+                transform: translateX(0) rotate(0deg);
+            }
+            100% {
+                top: 100%;
+                transform: translateX(100px) rotate(360deg);
+            }
+        }
+
+        /* Prevent pull-to-refresh on mobile */
+        body {
+            overscroll-behavior: none;
+        }
+
+        /* Hide scrollbars */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="startScreen">
+            <div class="falling-leaves" id="fallingLeaves"></div>
+            <div class="start-content">
+                <div class="emoji-container">
+                    <div class="emoji">🌿</div>
+                    <div class="emoji">🍃</div>
+                    <div class="emoji">🌿</div>
+                </div>
+                <h1 id="gameTitle">Žolės Gaudytojas</h1>
+                <p class="subtitle">Gaudyk teisingus lapus ir išvenk klaidingų!</p>
+                
+                <div class="instructions">
+                    <div class="instruction-item">
+                        <div class="instruction-icon">🌿</div>
+                        <div>
+                            <span class="good-item">VORINIO DUMAI</span><br>
+                            Gaudyk šiuos! +1 taškas
+                        </div>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="instruction-icon">🍂</div>
+                        <div>
+                            <span class="bad-item">CHIMKE</span><br>
+                            Vengk šių! Žaidimas baigsis
+                        </div>
+                    </div>
+                    <div class="instruction-item">
+                        <div class="instruction-icon">👆</div>
+                        <div>
+                            Valdyk krepšelį pelės arba lietimo judesiais
+                        </div>
+                    </div>
+                </div>
+
+                <button id="startButton">Pradėti Žaidimą</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Animated falling leaves in background
+        const fallingLeavesContainer = document.getElementById('fallingLeaves');
+        const leafEmojis = ['🌿', '🍃', '🍂'];
+        
+        for (let i = 0; i < 15; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'falling-leaf';
+            leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            leaf.style.animationDelay = Math.random() * 5 + 's';
+            fallingLeavesContainer.appendChild(leaf);
+        }
+    </script>
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

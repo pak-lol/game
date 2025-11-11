@@ -1,0 +1,15 @@
+{
+  "game": {
+    "title": "Žolės Gaudytojas",
+    "start": "Pradėti Žaidimą",
+    "score": "Taškai",
+    "gameOver": "ŽAIDIMAS BAIGTAS!",
+    "finalScore": "Galutinis rezultatas",
+    "restart": "Spausk pradėti iš naujo",
+    "warning": "Tu pagavai \"chimke\"!\nGaudyk tik \"vorinio dumai\"!"
+  },
+  "items": {
+    "chimke": "chimke",
+    "vorinioDumai": "vorinio dumai"
+  }
+}

@@ -1,0 +1,168 @@
+<svg width="640" height="360" viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F2027;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#203A43;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2C5364;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Leaf gradient -->
+    <linearGradient id="leafGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#66FF66;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E7D32;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Brown leaf gradient -->
+    <linearGradient id="brownLeafGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#A0522D;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B4513;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#654321;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Text glow -->
+    <filter id="textGlow">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Shadow -->
+    <filter id="dropShadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.5"/>
+    </filter>
+    
+    <!-- Basket gradient -->
+    <linearGradient id="basketGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#D2691E;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B4513;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="640" height="360" fill="url(#bgGradient)"/>
+  
+  <!-- Stars in background -->
+  <circle cx="80" cy="40" r="2" fill="white" opacity="0.6"/>
+  <circle cx="150" cy="70" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="560" cy="50" r="2" fill="white" opacity="0.7"/>
+  <circle cx="600" cy="90" r="1.5" fill="white" opacity="0.5"/>
+  <circle cx="100" cy="120" r="1" fill="white" opacity="0.4"/>
+  <circle cx="580" cy="140" r="1.2" fill="white" opacity="0.6"/>
+  
+  <!-- Decorative falling leaves (background) -->
+  <g opacity="0.3">
+    <!-- Left side leaves -->
+    <g transform="translate(50, 80) rotate(-15)">
+      <ellipse cx="0" cy="0" rx="8" ry="15" fill="url(#leafGlow)"/>
+      <ellipse cx="-6" cy="-5" rx="5" ry="10" fill="url(#leafGlow)" transform="rotate(-30)"/>
+      <ellipse cx="6" cy="-5" rx="5" ry="10" fill="url(#leafGlow)" transform="rotate(30)"/>
+    </g>
+    
+    <g transform="translate(120, 200) rotate(25)">
+      <ellipse cx="0" cy="0" rx="6" ry="12" fill="url(#brownLeafGlow)"/>
+      <ellipse cx="-4" cy="-4" rx="4" ry="8" fill="url(#brownLeafGlow)" transform="rotate(-30)"/>
+      <ellipse cx="4" cy="-4" rx="4" ry="8" fill="url(#brownLeafGlow)" transform="rotate(30)"/>
+    </g>
+    
+    <!-- Right side leaves -->
+    <g transform="translate(590, 100) rotate(20)">
+      <ellipse cx="0" cy="0" rx="7" ry="14" fill="url(#leafGlow)"/>
+      <ellipse cx="-5" cy="-4" rx="5" ry="9" fill="url(#leafGlow)" transform="rotate(-30)"/>
+      <ellipse cx="5" cy="-4" rx="5" ry="9" fill="url(#leafGlow)" transform="rotate(30)"/>
+    </g>
+    
+    <g transform="translate(520, 240) rotate(-20)">
+      <ellipse cx="0" cy="0" rx="6" ry="12" fill="url(#brownLeafGlow)"/>
+      <ellipse cx="-4" cy="-4" rx="4" ry="8" fill="url(#brownLeafGlow)" transform="rotate(-30)"/>
+      <ellipse cx="4" cy="-4" rx="4" ry="8" fill="url(#brownLeafGlow)" transform="rotate(30)"/>
+    </g>
+  </g>
+  
+  <!-- Main basket at bottom -->
+  <g transform="translate(320, 290)" filter="url(#dropShadow)">
+    <path d="M -40 0 L -45 20 L 45 20 L 40 0 Z" fill="url(#basketGrad)"/>
+    <rect x="-42" y="-3" width="84" height="4" rx="2" fill="#A0522D"/>
+    <!-- Weave lines -->
+    <line x1="-30" y1="0" x2="-33" y2="20" stroke="#654321" stroke-width="2" opacity="0.6"/>
+    <line x1="-15" y1="0" x2="-17" y2="20" stroke="#654321" stroke-width="2" opacity="0.6"/>
+    <line x1="0" y1="0" x2="0" y2="20" stroke="#654321" stroke-width="2" opacity="0.6"/>
+    <line x1="15" y1="0" x2="17" y2="20" stroke="#654321" stroke-width="2" opacity="0.6"/>
+    <line x1="30" y1="0" x2="33" y2="20" stroke="#654321" stroke-width="2" opacity="0.6"/>
+  </g>
+  
+  <!-- Large central weed leaf (good one) -->
+  <g transform="translate(250, 140)" filter="url(#dropShadow)">
+    <!-- Stem -->
+    <path d="M 0 20 Q -2 40 0 55" stroke="#1B5E20" stroke-width="4" fill="none" stroke-linecap="round"/>
+    
+    <!-- Center leaf -->
+    <ellipse cx="0" cy="10" rx="12" ry="25" fill="url(#leafGlow)"/>
+    
+    <!-- Left leaves -->
+    <ellipse cx="-12" cy="15" rx="9" ry="20" fill="url(#leafGlow)" transform="rotate(-30 -12 15)"/>
+    <ellipse cx="-18" cy="25" rx="7" ry="15" fill="url(#leafGlow)" transform="rotate(-45 -18 25)"/>
+    
+    <!-- Right leaves -->
+    <ellipse cx="12" cy="15" rx="9" ry="20" fill="url(#leafGlow)" transform="rotate(30 12 15)"/>
+    <ellipse cx="18" cy="25" rx="7" ry="15" fill="url(#leafGlow)" transform="rotate(45 18 25)"/>
+    
+    <!-- Bottom leaves -->
+    <ellipse cx="-10" cy="33" rx="6" ry="12" fill="url(#leafGlow)" transform="rotate(-60 -10 33)"/>
+    <ellipse cx="10" cy="33" rx="6" ry="12" fill="url(#leafGlow)" transform="rotate(60 10 33)"/>
+    
+    <!-- Veins -->
+    <path d="M 0 0 L 0 25" stroke="#1B5E20" stroke-width="1.5" opacity="0.5"/>
+    <path d="M 0 10 L -8 13" stroke="#1B5E20" stroke-width="1" opacity="0.4"/>
+    <path d="M 0 10 L 8 13" stroke="#1B5E20" stroke-width="1" opacity="0.4"/>
+    
+    <!-- Label -->
+    <text x="0" y="75" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#00FF00" text-anchor="middle" stroke="#000000" stroke-width="3" paint-order="stroke">VORINIO DUMAI</text>
+  </g>
+  
+  <!-- Large central brown leaf (bad one) -->
+  <g transform="translate(390, 140)" filter="url(#dropShadow)">
+    <!-- Stem -->
+    <path d="M 0 20 Q 2 40 0 55" stroke="#3E2723" stroke-width="4" fill="none" stroke-linecap="round"/>
+    
+    <!-- Center leaf -->
+    <ellipse cx="0" cy="10" rx="12" ry="25" fill="url(#brownLeafGlow)"/>
+    
+    <!-- Left leaves -->
+    <ellipse cx="-12" cy="15" rx="9" ry="20" fill="url(#brownLeafGlow)" transform="rotate(-30 -12 15)"/>
+    <ellipse cx="-18" cy="25" rx="7" ry="15" fill="url(#brownLeafGlow)" transform="rotate(-45 -18 25)"/>
+    
+    <!-- Right leaves -->
+    <ellipse cx="12" cy="15" rx="9" ry="20" fill="url(#brownLeafGlow)" transform="rotate(30 12 15)"/>
+    <ellipse cx="18" cy="25" rx="7" ry="15" fill="url(#brownLeafGlow)" transform="rotate(45 18 25)"/>
+    
+    <!-- Bottom leaves -->
+    <ellipse cx="-10" cy="33" rx="6" ry="12" fill="url(#brownLeafGlow)" transform="rotate(-60 -10 33)"/>
+    <ellipse cx="10" cy="33" rx="6" ry="12" fill="url(#brownLeafGlow)" transform="rotate(60 10 33)"/>
+    
+    <!-- Veins -->
+    <path d="M 0 0 L 0 25" stroke="#3E2723" stroke-width="1.5" opacity="0.5"/>
+    <path d="M 0 10 L -8 13" stroke="#3E2723" stroke-width="1" opacity="0.4"/>
+    <path d="M 0 10 L 8 13" stroke="#3E2723" stroke-width="1" opacity="0.4"/>
+    
+    <!-- Label -->
+    <text x="0" y="75" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FF6B6B" text-anchor="middle" stroke="#000000" stroke-width="3" paint-order="stroke">CHIMKE</text>
+  </g>
+  
+  <!-- VS symbol between leaves -->
+  <g transform="translate(320, 155)">
+    <circle cx="0" cy="0" r="25" fill="rgba(0, 0, 0, 0.6)" stroke="#FFD700" stroke-width="3"/>
+    <text x="0" y="8" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#FFD700" text-anchor="middle">VS</text>
+  </g>
+  
+  <!-- Game title -->
+  <g filter="url(#textGlow)">
+    <text x="320" y="50" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#4CAF50" text-anchor="middle" stroke="#1B5E20" stroke-width="2" paint-order="stroke">ŽOLĖS GAUDYTOJAS</text>
+  </g>
+  
+  <!-- Subtitle -->
+  <text x="320" y="340" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFD700" text-anchor="middle" opacity="0.9">Gaudyk teisingus lapus!</text>
+</svg>

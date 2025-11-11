@@ -1,0 +1,35 @@
+<svg width="60" height="80" viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="leafGradientBrown" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B4513;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#654321;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3E2723;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadowBrown">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Stem -->
+  <path d="M 30 40 Q 28 60 30 75" stroke="#3E2723" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <!-- Center leaf -->
+  <ellipse cx="30" cy="25" rx="8" ry="18" fill="url(#leafGradientBrown)" filter="url(#shadowBrown)"/>
+  
+  <!-- Left leaves -->
+  <ellipse cx="20" cy="30" rx="6" ry="14" fill="url(#leafGradientBrown)" transform="rotate(-30 20 30)" filter="url(#shadowBrown)"/>
+  <ellipse cx="15" cy="40" rx="5" ry="11" fill="url(#leafGradientBrown)" transform="rotate(-45 15 40)" filter="url(#shadowBrown)"/>
+  
+  <!-- Right leaves -->
+  <ellipse cx="40" cy="30" rx="6" ry="14" fill="url(#leafGradientBrown)" transform="rotate(30 40 30)" filter="url(#shadowBrown)"/>
+  <ellipse cx="45" cy="40" rx="5" ry="11" fill="url(#leafGradientBrown)" transform="rotate(45 45 40)" filter="url(#shadowBrown)"/>
+  
+  <!-- Bottom leaves -->
+  <ellipse cx="22" cy="48" rx="4" ry="9" fill="url(#leafGradientBrown)" transform="rotate(-60 22 48)" filter="url(#shadowBrown)"/>
+  <ellipse cx="38" cy="48" rx="4" ry="9" fill="url(#leafGradientBrown)" transform="rotate(60 38 48)" filter="url(#shadowBrown)"/>
+  
+  <!-- Veins -->
+  <path d="M 30 15 L 30 40" stroke="#3E2723" stroke-width="1" opacity="0.5"/>
+  <path d="M 30 25 L 24 28" stroke="#3E2723" stroke-width="0.5" opacity="0.4"/>
+  <path d="M 30 25 L 36 28" stroke="#3E2723" stroke-width="0.5" opacity="0.4"/>
+</svg>
