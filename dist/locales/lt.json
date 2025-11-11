@@ -27,5 +27,10 @@
   "items": {
     "chimke": "chimke",
     "vorinioDumai": "vorinio dumai"
+  },
+  "powerups": {
+    "bucket": "Kibiras",
+    "slowdown": "Lėtinimas",
+    "bucketCaught": "Kibiras pagautas! Greitis sulėtėjo!"
   }
 }

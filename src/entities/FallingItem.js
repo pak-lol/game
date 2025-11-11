@@ -18,12 +18,18 @@ export class FallingItem {
         
         // Create text label with better visibility
         const isGoodItem = type === GAME_CONFIG.itemTypes.VORINIO_DUMAI;
+        const isBucket = type === GAME_CONFIG.itemTypes.BUCKET;
+
+        let textColor = '#FF6B6B'; // Bad item (chimke)
+        if (isGoodItem) textColor = '#00FF00'; // Good item (vorinio dumai)
+        if (isBucket) textColor = '#FFD700'; // Power-up (bucket)
+
         this.text = new PIXI.Text({
             text: label.toUpperCase(),
             style: {
                 fontFamily: 'Arial',
                 fontSize: ITEM_CONFIG.getFontSize(),
-                fill: isGoodItem ? '#00FF00' : '#FF6B6B',
+                fill: textColor,
                 fontWeight: 'bold',
                 stroke: '#000000',
                 strokeThickness: 5,
@@ -90,5 +96,15 @@ export class FallingItem {
 
     isScoreable() {
         return this.type === GAME_CONFIG.itemTypes.VORINIO_DUMAI;
+    }
+
+    /**
+     * Update item speed (for power-up effects)
+     * @param {number} newSpeedMultiplier - New speed multiplier
+     */
+    updateSpeed(newSpeedMultiplier) {
+        const baseSpeed = this.speed / this.speedMultiplier; // Get base speed
+        this.speedMultiplier = newSpeedMultiplier;
+        this.speed = baseSpeed * this.speedMultiplier; // Apply new multiplier
     }
 }

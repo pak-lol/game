@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { GAME_CONFIG, DIFFICULTY_CONFIG, updateGameDimensions } from './config.js';
+import { GAME_CONFIG, DIFFICULTY_CONFIG, POWERUP_CONFIG, updateGameDimensions } from './config.js';
 import { AssetLoader } from './utils/AssetLoader.js';
 import { Player } from './entities/Player.js';
 import { FallingItem } from './entities/FallingItem.js';
@@ -7,6 +7,7 @@ import { CollisionSystem } from './systems/CollisionSystem.js';
 import { ParticleSystem } from './systems/ParticleSystem.js';
 import { ScoreDisplay } from './ui/ScoreDisplay.js';
 import { SpeedDisplay } from './ui/SpeedDisplay.js';
+import { PowerUpTimer } from './ui/PowerUpTimer.js';
 import { i18n } from './utils/i18n.js';
 import { GameStateManager, GameState } from './managers/GameStateManager.js';
 import { ScoreService } from './services/ScoreService.js';
@@ -33,14 +34,17 @@ export class Game {
         this.player = null;
         this.scoreDisplay = null;
         this.speedDisplay = null;
+        this.powerUpTimer = null;
         this.fallingItems = [];
 
         // Game state
         this.spawnTimer = 0;
         this.gameLoopBound = null;
         this.currentSpeedMultiplier = 1.0;
+        this.originalSpeedMultiplier = 1.0; // Store original speed before power-up
         this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
         this.username = '';
+        this.powerUpActive = false;
 
         // Background reference
         this.background = null;
@@ -172,6 +176,11 @@ export class Game {
                 this.speedDisplay.updatePosition();
             }
 
+            // Update power-up timer position if it exists
+            if (this.powerUpTimer) {
+                this.powerUpTimer.updatePosition();
+            }
+
             // Update falling items positions proportionally
             if (this.fallingItems.length > 0) {
                 const scaleX = GAME_CONFIG.width / oldWidth;
@@ -220,6 +229,7 @@ export class Game {
         this.createPlayer();
         this.createScoreDisplay();
         this.createSpeedDisplay();
+        this.createPowerUpTimer();
 
         // Remove old game loop if it exists
         if (this.gameLoopBound) {
@@ -269,25 +279,46 @@ export class Game {
         this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
     }
 
+    createPowerUpTimer() {
+        this.powerUpTimer = new PowerUpTimer();
+        this.powerUpTimer.addToStage(this.app.stage);
+    }
+
     spawnFallingItem() {
-        // Randomly choose between the two types
-        const types = Object.values(GAME_CONFIG.itemTypes);
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        
-        // Use different texture based on type
-        const texture =
-            randomType === GAME_CONFIG.itemTypes.CHIMKE
-                ? this.assetLoader.getTexture('weedLeafBrown')
-                : this.assetLoader.getTexture('weedLeaf');
-        
-        // Get translated label
-        const label =
-            randomType === GAME_CONFIG.itemTypes.CHIMKE
-                ? i18n.t('items.chimke')
-                : i18n.t('items.vorinioDumai');
-        
+        let randomType;
+        let texture;
+        let label;
+
+        // 5% chance to spawn bucket power-up
+        const spawnBucket = Math.random() < POWERUP_CONFIG.bucket.spawnChance;
+
+        if (spawnBucket) {
+            randomType = GAME_CONFIG.itemTypes.BUCKET;
+            texture = this.assetLoader.getTexture('bucket');
+            label = i18n.t('powerups.bucket');
+        } else {
+            // Randomly choose between the two regular types
+            const regularTypes = [
+                GAME_CONFIG.itemTypes.CHIMKE,
+                GAME_CONFIG.itemTypes.VORINIO_DUMAI
+            ];
+            randomType = regularTypes[Math.floor(Math.random() * regularTypes.length)];
+
+            // Use different texture based on type
+            texture =
+                randomType === GAME_CONFIG.itemTypes.CHIMKE
+                    ? this.assetLoader.getTexture('weedLeafBrown')
+                    : this.assetLoader.getTexture('weedLeaf');
+
+            // Get translated label
+            label =
+                randomType === GAME_CONFIG.itemTypes.CHIMKE
+                    ? i18n.t('items.chimke')
+                    : i18n.t('items.vorinioDumai');
+        }
+
         const item = new FallingItem(texture, randomType, label, this.currentSpeedMultiplier);
-        
+
         item.addToStage(this.app.stage);
         this.fallingItems.push(item);
     }
@@ -305,6 +336,15 @@ export class Game {
         // Animate speed display
         if (this.speedDisplay) {
             this.speedDisplay.animate(delta.deltaTime);
+        }
+
+        // Update power-up timer
+        if (this.powerUpTimer && this.powerUpTimer.isActive()) {
+            const stillActive = this.powerUpTimer.update(delta.deltaTime * 1000); // Convert to ms
+            if (!stillActive) {
+                // Timer finished, restore original speed
+                this.restoreSpeed();
+            }
         }
 
         // Spawn falling items
@@ -339,9 +379,14 @@ export class Game {
         if (!item || !this.scoreDisplay) return;
 
         const position = item.getPosition();
+        const itemType = item.type;
 
-        // Only increment score for "vorinio dumai"
-        if (item.isScoreable()) {
+        // Handle bucket power-up
+        if (itemType === GAME_CONFIG.itemTypes.BUCKET) {
+            this.handleBucketCatch(position);
+        }
+        // Increment score for "vorinio dumai"
+        else if (item.isScoreable()) {
             this.scoreDisplay.increment();
             this.particleSystem.createCatchEffect(position.x, position.y, '#4CAF50');
 
@@ -350,10 +395,13 @@ export class Game {
                 this.telegramService.hapticFeedback('light');
             }
 
-            // Increase difficulty
-            this.increaseDifficulty();
-        } else {
-            // Game over for catching "chimke"
+            // Increase difficulty (only if no power-up is active)
+            if (!this.powerUpActive) {
+                this.increaseDifficulty();
+            }
+        }
+        // Game over for catching "chimke"
+        else {
             this.particleSystem.createCatchEffect(position.x, position.y, '#FF6B6B');
 
             // Haptic feedback for error
@@ -366,6 +414,75 @@ export class Game {
 
         item.removeFromStage(this.app.stage);
         this.fallingItems.splice(index, 1);
+    }
+
+    /**
+     * Handle catching bucket power-up
+     * @param {Object} position - Position where bucket was caught
+     */
+    handleBucketCatch(position) {
+        console.log('Bucket caught! Slowing down speed...');
+
+        // Create golden particle effect
+        this.particleSystem.createCatchEffect(position.x, position.y, '#FFD700');
+
+        // Haptic feedback for power-up
+        if (this.telegramService) {
+            this.telegramService.hapticFeedback('success');
+        }
+
+        // Store current speed and slow down
+        this.powerUpActive = true;
+        this.originalSpeedMultiplier = this.currentSpeedMultiplier;
+
+        // Apply slowdown effect
+        this.currentSpeedMultiplier = Math.max(1.0, this.currentSpeedMultiplier * POWERUP_CONFIG.bucket.speedMultiplier);
+
+        // Update all falling items with new speed
+        this.updateFallingItemsSpeeds();
+
+        // Update speed display
+        if (this.speedDisplay) {
+            this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
+        }
+
+        // Start timer
+        if (this.powerUpTimer) {
+            this.powerUpTimer.start('bucket', POWERUP_CONFIG.bucket.duration);
+        }
+
+        console.log(`Speed reduced from ${this.originalSpeedMultiplier.toFixed(2)}x to ${this.currentSpeedMultiplier.toFixed(2)}x`);
+    }
+
+    /**
+     * Restore speed after power-up expires
+     */
+    restoreSpeed() {
+        console.log('Power-up expired! Restoring speed...');
+
+        this.powerUpActive = false;
+        this.currentSpeedMultiplier = this.originalSpeedMultiplier;
+
+        // Update all falling items with restored speed
+        this.updateFallingItemsSpeeds();
+
+        // Update speed display
+        if (this.speedDisplay) {
+            this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
+        }
+
+        console.log(`Speed restored to ${this.currentSpeedMultiplier.toFixed(2)}x`);
+    }
+
+    /**
+     * Update all falling items with current speed
+     */
+    updateFallingItemsSpeeds() {
+        for (const item of this.fallingItems) {
+            if (item && item.updateSpeed) {
+                item.updateSpeed(this.currentSpeedMultiplier);
+            }
+        }
     }
 
     increaseDifficulty() {
@@ -482,6 +599,7 @@ export class Game {
         this.player = null;
         this.scoreDisplay = null;
         this.speedDisplay = null;
+        this.powerUpTimer = null;
     }
 
     /**
@@ -498,6 +616,11 @@ export class Game {
 
         // Reset speed display (will be created on start)
         this.speedDisplay = null;
+        this.powerUpTimer = null;
+
+        // Reset power-up state
+        this.powerUpActive = false;
+        this.originalSpeedMultiplier = 1.0;
     }
 
     /**

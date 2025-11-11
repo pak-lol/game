@@ -51,7 +51,8 @@ export const GAME_CONFIG = {
     defaultLocale: 'lt',
     itemTypes: {
         CHIMKE: 'chimke',
-        VORINIO_DUMAI: 'vorinio_dumai'
+        VORINIO_DUMAI: 'vorinio_dumai',
+        BUCKET: 'bucket'
     }
 };
 
@@ -104,4 +105,12 @@ export const PARTICLE_CONFIG = {
     speed: 3,
     life: 30,
     fadeSpeed: 0.03
+};
+
+export const POWERUP_CONFIG = {
+    bucket: {
+        spawnChance: 0.05,  // 5% chance to spawn bucket instead of regular item
+        duration: 5000,     // 5 seconds in milliseconds
+        speedMultiplier: 0.5 // Slow down to 50% speed
+    }
 };
