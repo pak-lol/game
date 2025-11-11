@@ -337,19 +337,50 @@ export class Game {
     showGameOverScreen() {
         const gameOverContainer = new PIXI.Container();
         
-        // Semi-transparent background
+        // Animated gradient background
         const overlay = new PIXI.Graphics();
         overlay.rect(0, 0, GAME_CONFIG.width, GAME_CONFIG.height);
-        overlay.fill({ color: 0x000000, alpha: 0.85 });
+        overlay.fill({ color: 0x000000, alpha: 0.9 });
         gameOverContainer.addChild(overlay);
         
         // Responsive font sizes
-        const titleSize = Math.max(32, Math.min(64, GAME_CONFIG.width / 12));
-        const scoreSize = Math.max(24, Math.min(36, GAME_CONFIG.width / 20));
-        const warningSize = Math.max(16, Math.min(24, GAME_CONFIG.width / 30));
-        const restartSize = Math.max(20, Math.min(28, GAME_CONFIG.width / 25));
+        const titleSize = Math.max(40, Math.min(72, GAME_CONFIG.width / 10));
+        const nameSize = Math.max(28, Math.min(42, GAME_CONFIG.width / 18));
+        const scoreSize = Math.max(32, Math.min(56, GAME_CONFIG.width / 14));
+        const warningSize = Math.max(14, Math.min(20, GAME_CONFIG.width / 35));
+        const restartSize = Math.max(22, Math.min(32, GAME_CONFIG.width / 22));
         
-        // Game Over text
+        const centerX = GAME_CONFIG.width / 2;
+        const centerY = GAME_CONFIG.height / 2;
+        
+        // Decorative panel background
+        const panel = new PIXI.Graphics();
+        const panelWidth = Math.min(500, GAME_CONFIG.width - 40);
+        const panelHeight = Math.min(450, GAME_CONFIG.height - 100);
+        panel.roundRect(
+            centerX - panelWidth / 2,
+            centerY - panelHeight / 2,
+            panelWidth,
+            panelHeight,
+            20
+        );
+        panel.fill({ color: 0x1a1a2e, alpha: 0.95 });
+        panel.stroke({ color: 0xFF6B6B, width: 4 });
+        gameOverContainer.addChild(panel);
+        
+        // Skull/sad emoji decoration
+        const emojiText = new PIXI.Text({
+            text: '💀',
+            style: {
+                fontSize: Math.max(40, Math.min(60, GAME_CONFIG.width / 12))
+            }
+        });
+        emojiText.anchor.set(0.5);
+        emojiText.x = centerX;
+        emojiText.y = centerY - panelHeight / 2 + 50;
+        gameOverContainer.addChild(emojiText);
+        
+        // Game Over text with glow
         const gameOverText = new PIXI.Text({
             text: i18n.t('game.gameOver'),
             style: {
@@ -357,54 +388,120 @@ export class Game {
                 fontSize: titleSize,
                 fill: '#FF6B6B',
                 fontWeight: 'bold',
-                stroke: '#000000',
+                stroke: '#8B0000',
                 strokeThickness: 6,
                 dropShadow: true,
-                dropShadowColor: '#000000',
-                dropShadowBlur: 8,
-                dropShadowDistance: 4
+                dropShadowColor: '#FF0000',
+                dropShadowBlur: 15,
+                dropShadowDistance: 0
             }
         });
         gameOverText.anchor.set(0.5);
-        gameOverText.x = GAME_CONFIG.width / 2;
-        gameOverText.y = GAME_CONFIG.height / 2 - 80;
+        gameOverText.x = centerX;
+        gameOverText.y = centerY - panelHeight / 2 + 120;
         gameOverContainer.addChild(gameOverText);
         
-        // Player name text
+        // Divider line
+        const divider1 = new PIXI.Graphics();
+        divider1.rect(centerX - panelWidth / 3, centerY - 80, panelWidth / 1.5, 2);
+        divider1.fill({ color: 0x4CAF50, alpha: 0.5 });
+        gameOverContainer.addChild(divider1);
+        
+        // Player name with icon
+        const playerContainer = new PIXI.Container();
+        const playerIcon = new PIXI.Text({
+            text: '👤',
+            style: { fontSize: nameSize }
+        });
+        playerIcon.anchor.set(0.5);
+        playerIcon.x = -nameSize;
+        playerIcon.y = 0;
+        
         const playerNameText = new PIXI.Text({
             text: this.username,
             style: {
                 fontFamily: 'Arial',
-                fontSize: scoreSize,
+                fontSize: nameSize,
                 fill: '#FFD700',
                 fontWeight: 'bold',
-                stroke: '#000000',
-                strokeThickness: 4
+                stroke: '#8B6914',
+                strokeThickness: 4,
+                dropShadow: true,
+                dropShadowColor: '#000000',
+                dropShadowBlur: 4,
+                dropShadowDistance: 2
             }
         });
         playerNameText.anchor.set(0.5);
-        playerNameText.x = GAME_CONFIG.width / 2;
-        playerNameText.y = GAME_CONFIG.height / 2 - 30;
-        gameOverContainer.addChild(playerNameText);
         
-        // Score text
+        playerContainer.addChild(playerIcon);
+        playerContainer.addChild(playerNameText);
+        playerContainer.x = centerX;
+        playerContainer.y = centerY - 30;
+        gameOverContainer.addChild(playerContainer);
+        
+        // Score display with trophy
+        const scoreContainer = new PIXI.Container();
+        const trophy = new PIXI.Text({
+            text: '🏆',
+            style: { fontSize: scoreSize * 0.8 }
+        });
+        trophy.anchor.set(0.5);
+        trophy.x = -scoreSize * 1.5;
+        trophy.y = 0;
+        
         const finalScoreText = new PIXI.Text({
-            text: `${i18n.t('game.finalScore')}: ${this.scoreDisplay.score}`,
+            text: this.scoreDisplay.score.toString(),
             style: {
                 fontFamily: 'Arial',
                 fontSize: scoreSize,
-                fill: '#FFFFFF',
+                fill: '#4CAF50',
                 fontWeight: 'bold',
-                stroke: '#000000',
-                strokeThickness: 4
+                stroke: '#1B5E20',
+                strokeThickness: 5,
+                dropShadow: true,
+                dropShadowColor: '#000000',
+                dropShadowBlur: 6,
+                dropShadowDistance: 3
             }
         });
         finalScoreText.anchor.set(0.5);
-        finalScoreText.x = GAME_CONFIG.width / 2;
-        finalScoreText.y = GAME_CONFIG.height / 2 + 20;
-        gameOverContainer.addChild(finalScoreText);
         
-        // Warning text
+        const pointsLabel = new PIXI.Text({
+            text: i18n.t('game.score'),
+            style: {
+                fontFamily: 'Arial',
+                fontSize: scoreSize * 0.4,
+                fill: '#FFFFFF',
+                fontWeight: 'normal'
+            }
+        });
+        pointsLabel.anchor.set(0.5);
+        pointsLabel.x = scoreSize * 1.5;
+        pointsLabel.y = 0;
+        
+        scoreContainer.addChild(trophy);
+        scoreContainer.addChild(finalScoreText);
+        scoreContainer.addChild(pointsLabel);
+        scoreContainer.x = centerX;
+        scoreContainer.y = centerY + 40;
+        gameOverContainer.addChild(scoreContainer);
+        
+        // Divider line 2
+        const divider2 = new PIXI.Graphics();
+        divider2.rect(centerX - panelWidth / 3, centerY + 90, panelWidth / 1.5, 2);
+        divider2.fill({ color: 0xFF6B6B, alpha: 0.5 });
+        gameOverContainer.addChild(divider2);
+        
+        // Warning text with icon
+        const warningContainer = new PIXI.Container();
+        const warningIcon = new PIXI.Text({
+            text: '⚠️',
+            style: { fontSize: warningSize * 1.5 }
+        });
+        warningIcon.anchor.set(0.5);
+        warningIcon.y = -warningSize;
+        
         const warningText = new PIXI.Text({
             text: i18n.t('game.warning'),
             style: {
@@ -413,41 +510,102 @@ export class Game {
                 fill: '#FFD700',
                 fontWeight: 'bold',
                 align: 'center',
-                stroke: '#000000',
-                strokeThickness: 3
+                stroke: '#8B6914',
+                strokeThickness: 3,
+                wordWrap: true,
+                wordWrapWidth: panelWidth - 60
             }
         });
         warningText.anchor.set(0.5);
-        warningText.x = GAME_CONFIG.width / 2;
-        warningText.y = GAME_CONFIG.height / 2 + 60;
-        gameOverContainer.addChild(warningText);
+        warningText.y = warningSize / 2;
         
-        // Restart button text
+        warningContainer.addChild(warningIcon);
+        warningContainer.addChild(warningText);
+        warningContainer.x = centerX;
+        warningContainer.y = centerY + 130;
+        gameOverContainer.addChild(warningContainer);
+        
+        // Restart button with background
+        const restartButton = new PIXI.Graphics();
+        const buttonWidth = Math.min(300, panelWidth - 100);
+        const buttonHeight = 60;
+        restartButton.roundRect(
+            centerX - buttonWidth / 2,
+            centerY + panelHeight / 2 - 80,
+            buttonWidth,
+            buttonHeight,
+            15
+        );
+        restartButton.fill({ color: 0x4CAF50 });
+        restartButton.stroke({ color: 0x66BB6A, width: 3 });
+        gameOverContainer.addChild(restartButton);
+        
         const restartText = new PIXI.Text({
-            text: i18n.t('game.restart'),
+            text: '🔄 ' + i18n.t('game.restart'),
             style: {
                 fontFamily: 'Arial',
                 fontSize: restartSize,
-                fill: '#4CAF50',
+                fill: '#FFFFFF',
                 fontWeight: 'bold',
-                stroke: '#000000',
+                stroke: '#1B5E20',
                 strokeThickness: 3
             }
         });
         restartText.anchor.set(0.5);
-        restartText.x = GAME_CONFIG.width / 2;
-        restartText.y = GAME_CONFIG.height / 2 + 130;
+        restartText.x = centerX;
+        restartText.y = centerY + panelHeight / 2 - 50;
         gameOverContainer.addChild(restartText);
         
         this.app.stage.addChild(gameOverContainer);
         
-        // Make it interactive
-        gameOverContainer.eventMode = 'static';
-        gameOverContainer.cursor = 'pointer';
-        gameOverContainer.on('pointerdown', () => {
+        // Make button interactive with hover effect
+        restartButton.eventMode = 'static';
+        restartButton.cursor = 'pointer';
+        
+        restartButton.on('pointerover', () => {
+            restartButton.clear();
+            restartButton.roundRect(
+                centerX - buttonWidth / 2,
+                centerY + panelHeight / 2 - 80,
+                buttonWidth,
+                buttonHeight,
+                15
+            );
+            restartButton.fill({ color: 0x66BB6A });
+            restartButton.stroke({ color: 0x81C784, width: 3 });
+        });
+        
+        restartButton.on('pointerout', () => {
+            restartButton.clear();
+            restartButton.roundRect(
+                centerX - buttonWidth / 2,
+                centerY + panelHeight / 2 - 80,
+                buttonWidth,
+                buttonHeight,
+                15
+            );
+            restartButton.fill({ color: 0x4CAF50 });
+            restartButton.stroke({ color: 0x66BB6A, width: 3 });
+        });
+        
+        restartButton.on('pointerdown', () => {
             this.app.stage.removeChild(gameOverContainer);
             this.restart();
         });
+        
+        // Add pulsing animation to game over text
+        let pulseDirection = 1;
+        const pulseAnimation = () => {
+            if (!gameOverText.parent) return;
+            
+            gameOverText.scale.x += 0.002 * pulseDirection;
+            gameOverText.scale.y += 0.002 * pulseDirection;
+            
+            if (gameOverText.scale.x > 1.1) pulseDirection = -1;
+            if (gameOverText.scale.x < 0.95) pulseDirection = 1;
+        };
+        
+        this.app.ticker.add(pulseAnimation);
     }
 
     restart() {
