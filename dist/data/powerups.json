@@ -32,5 +32,22 @@
     "effectType": "score_multiplier",
     "effectValue": 2.0,
     "rarity": 5
+  },
+  "tablet": {
+    "id": "tablet",
+    "type": "powerup",
+    "nameKey": "powerups.tablet",
+    "descriptionKey": "powerups.tabletDescription",
+    "texture": "tablet",
+    "assetPath": "/assets/tablet.svg",
+    "icon": "💊",
+    "spawnChance": 0.0050,
+    "color": "#FF1744",
+    "particleColor": "#FF5252",
+    "haptic": "heavy",
+    "duration": 5000,
+    "effectType": "clear_chimke",
+    "effectValue": true,
+    "rarity": 5
   }
 }
