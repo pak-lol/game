@@ -39,7 +39,7 @@
     "nameKey": "powerups.tablet",
     "descriptionKey": "powerups.tabletDescription",
     "texture": "tablet",
-    "assetPath": "/assets/tablet.svg",
+    "assetPath": "/assets/tablet-v2.svg",
     "icon": "💊",
     "spawnChance": 0.0050,
     "color": "#FF1744",
