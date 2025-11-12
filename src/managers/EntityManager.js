@@ -45,6 +45,9 @@ export class EntityManager {
 
             // Check collision
             if (collisionCallback && collisionCallback(item, i)) {
+                // Item was caught - remove from stage and array
+                item.removeFromStage(this.game.app.stage);
+                this.fallingItems.splice(i, 1);
                 removedCount++;
                 continue;
             }

@@ -595,8 +595,7 @@ export class Game {
             this.increaseDifficulty();
         }
 
-        // Remove item from stage
-        item.removeFromStage(this.app.stage);
+        // Note: Item removal (from stage and array) is handled by EntityManager
     }
 
     /**
