@@ -1,31 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <!-- Shadow -->
   <ellipse cx="100" cy="180" rx="60" ry="8" fill="#000000" opacity="0.2"/>
-
-  <!-- Main pill shape - Left half (darker red) -->
-  <path d="M 60 100 Q 60 50 100 50 L 100 150 Q 60 150 60 100 Z" fill="#D32F2F"/>
-
-  <!-- Main pill shape - Right half (lighter red) -->
-  <path d="M 100 50 Q 140 50 140 100 Q 140 150 100 150 Z" fill="#FF5252"/>
-
-  <!-- Center line divider -->
+  <ellipse cx="100" cy="100" rx="40" ry="50" fill="#D32F2F"/>
+  <ellipse cx="105" cy="100" rx="35" ry="50" fill="#FF5252"/>
   <rect x="98" y="50" width="4" height="100" fill="#B71C1C" opacity="0.6"/>
-
-  <!-- Left side shine effect -->
-  <ellipse cx="80" cy="70" rx="15" ry="25" fill="white" opacity="0.35"/>
-
-  <!-- Right side shine effect -->
-  <ellipse cx="120" cy="75" rx="12" ry="20" fill="white" opacity="0.25"/>
-
-  <!-- Medical cross symbol on right half -->
-  <rect x="113" y="88" width="4" height="24" fill="white" opacity="0.9"/>
-  <rect x="103" y="98" width="24" height="4" fill="white" opacity="0.9"/>
-
-  <!-- Decorative dots on left half -->
+  <ellipse cx="80" cy="70" rx="15" ry="25" fill="#FFFFFF" opacity="0.35"/>
+  <ellipse cx="120" cy="75" rx="12" ry="20" fill="#FFFFFF" opacity="0.25"/>
+  <rect x="113" y="88" width="4" height="24" fill="#FFFFFF" opacity="0.9"/>
+  <rect x="103" y="98" width="24" height="4" fill="#FFFFFF" opacity="0.9"/>
   <circle cx="75" cy="100" r="2.5" fill="#B71C1C" opacity="0.5"/>
   <circle cx="85" cy="110" r="2.5" fill="#B71C1C" opacity="0.5"/>
   <circle cx="75" cy="120" r="2.5" fill="#B71C1C" opacity="0.5"/>
-
-  <!-- Outer glow ring -->
-  <ellipse cx="100" cy="100" rx="75" ry="55" fill="none" stroke="#FF1744" stroke-width="2" opacity="0.3"/>
 </svg>
