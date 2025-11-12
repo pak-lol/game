@@ -21,6 +21,9 @@ import { ScoreService } from './services/ScoreService.js';
 import { UIManager } from './managers/UIManager.js';
 import { AudioManager } from './services/AudioManager.js';
 import { wsService } from './services/WebSocketService.js';
+import { PowerUpEffectManager } from './managers/PowerUpEffectManager.js';
+import { EntityManager } from './managers/EntityManager.js';
+import { DifficultyManager } from './managers/DifficultyManager.js';
 import { OptionsModal } from './ui/modals/OptionsModal.js';
 import { ContestInfoModal } from './ui/modals/ContestInfoModal.js';
 import { LeaderboardModal } from './ui/modals/LeaderboardModal.js';
@@ -44,27 +47,37 @@ export class Game {
         this.audioManager = new AudioManager();
         this.telegramService = null;
 
+        // NEW: Specialized managers for better organization
+        this.powerUpManager = null; // Initialized in init()
+        this.entityManager = null;  // Initialized in init()
+        this.difficultyManager = new DifficultyManager();
+
         // Game entities
         this.player = null;
         this.scoreDisplay = null;
         this.speedDisplay = null;
         this.powerUpTimer = null;
         this.connectionStatus = null;
-        this.fallingItems = [];
-        this.scorePopups = []; // Array of active score popups
+
+        // Delegated to EntityManager
+        this.fallingItems = []; // Keep for backward compatibility
+        this.scorePopups = [];  // Keep for backward compatibility
 
         // Game state
         this.spawnTimer = 0;
-        this.scoreTimer = 0; // Timer for passive score per second
+        this.scoreTimer = 0;
         this.gameLoopBound = null;
-        this.currentSpeedMultiplier = 1.0;
-        this.originalSpeedMultiplier = 1.0; // Store original speed before power-up
-        this.currentScoreMultiplier = 1.0; // Score multiplier for power-ups
-        this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
         this.username = '';
-        this.powerUpActive = false;
-        this.scoreMultiplierActive = false;
-        this.chimkeBlockActive = false; // Track if chimke blocking is active
+
+        // Delegated to DifficultyManager
+        this.currentSpeedMultiplier = 1.0;      // Kept for compatibility
+        this.currentSpawnInterval = GAME_CONFIG.spawnInterval; // Kept for compatibility
+        this.currentScoreMultiplier = 1.0;      // Managed by PowerUpEffectManager
+
+        // Delegated to PowerUpEffectManager
+        this.chimkeBlockActive = false;
+        this.invincible = false;
+        this.itemsFrozen = false;
 
         // Background reference
         this.background = null;
@@ -124,6 +137,10 @@ export class Game {
             this.particleSystem = new ParticleSystem(this.app);
             this.uiManager.setStage(this.app.stage);
             this.uiManager.setScoreService(this.scoreService);
+
+            // Initialize new managers
+            this.powerUpManager = new PowerUpEffectManager(this);
+            this.entityManager = new EntityManager(this);
 
             // Create connection status indicator
             this.connectionStatus = new ConnectionStatus();
@@ -444,17 +461,18 @@ export class Game {
             // If we still got a game-over item after 10 attempts (unlikely),
             // just don't spawn anything this cycle
             if (this.chimkeBlockActive && itemConfig.gameOver) {
-                console.log('Chimke block active - skipping chimke spawn');
+                console.log('[Game] Chimke block active - skipping chimke spawn');
                 return;
             }
 
             texture = this.assetLoader.getTexture(itemConfig.texture);
         }
 
-        const item = new FallingItem(texture, itemConfig, this.currentSpeedMultiplier);
+        // Use EntityManager to spawn
+        const item = this.entityManager.spawnItem(itemConfig, texture, this.currentSpeedMultiplier);
 
-        item.addToStage(this.app.stage);
-        this.fallingItems.push(item);
+        // Keep backward compatibility
+        this.fallingItems = this.entityManager.getAllItems();
     }
 
     /**
@@ -472,22 +490,11 @@ export class Game {
             this.speedDisplay.animate(delta.deltaTime);
         }
 
-        // Update power-up timer
+        // Update power-up timer UI
         if (this.powerUpTimer && this.powerUpTimer.isActive()) {
             // Use deltaMS for accurate millisecond timing
-            const stillActive = this.powerUpTimer.update(delta.deltaMS);
-            if (!stillActive) {
-                // Timer finished, restore effects based on what's active
-                if (this.powerUpActive) {
-                    this.restoreSpeed();
-                }
-                if (this.scoreMultiplierActive) {
-                    this.restoreScoreMultiplier();
-                }
-                if (this.chimkeBlockActive) {
-                    this.restoreChimkeSpawning();
-                }
-            }
+            this.powerUpTimer.update(delta.deltaMS);
+            // Note: Effect expiry is now handled by PowerUpEffectManager
         }
 
         // Add 1 score per second (passive scoring)
@@ -505,39 +512,27 @@ export class Game {
             this.spawnTimer = 0;
         }
 
-        // Update falling items
-        for (let i = this.fallingItems.length - 1; i >= 0; i--) {
-            const item = this.fallingItems[i];
-            if (!item || !item.update) continue;
+        // Update power-up effects
+        if (this.powerUpManager) {
+            this.powerUpManager.update(Date.now());
+        }
 
-            item.update(delta.deltaTime);
-
+        // Update falling items using EntityManager
+        this.entityManager.updateItems(delta.deltaTime, (item, index) => {
             // Check collision with player
             if (this.collisionSystem.checkCollision(item, this.player)) {
-                this.handleItemCatch(item, i);
-                continue;
+                this.handleItemCatch(item, index);
+                return true; // Item was caught, remove it
             }
+            return false; // Item not caught, keep it
+        });
 
-            // Remove if off screen
-            if (item.isOffScreen()) {
-                item.removeFromStage(this.app.stage);
-                this.fallingItems.splice(i, 1);
-            }
-        }
+        // Update score popups using EntityManager
+        this.entityManager.updatePopups(delta.deltaTime);
 
-        // Update score popups
-        for (let i = this.scorePopups.length - 1; i >= 0; i--) {
-            const popup = this.scorePopups[i];
-            if (!popup || !popup.update) continue;
-
-            const stillActive = popup.update(delta.deltaTime);
-
-            if (!stillActive) {
-                popup.removeFromStage(this.app.stage);
-                popup.destroy();
-                this.scorePopups.splice(i, 1);
-            }
-        }
+        // Sync backward compatibility arrays
+        this.fallingItems = this.entityManager.getAllItems();
+        this.scorePopups = this.entityManager.getAllPopups();
     }
 
     /**
@@ -554,16 +549,32 @@ export class Game {
         if (config.effectType) {
             this.handlePowerUpCatch(item, position);
         }
-        // Check if this is a game-over item
+        // Check if this is a game-over item (chimke)
         else if (item.isGameOver()) {
-            this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+            // Check invincibility
+            if (this.invincible) {
+                console.log('[Game] Invincible! Chimke has no effect');
 
-            // Haptic feedback
-            if (this.telegramService && config.haptic) {
-                this.telegramService.hapticFeedback(config.haptic);
+                // Still create particle effect
+                this.particleSystem.createCatchEffect(position.x, position.y, 0xFFD700);
+
+                // Haptic feedback
+                if (this.telegramService) {
+                    this.telegramService.hapticFeedback('light');
+                }
+
+                // Don't call gameOver()
+            } else {
+                // Not invincible - game over
+                this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+
+                // Haptic feedback
+                if (this.telegramService && config.haptic) {
+                    this.telegramService.hapticFeedback(config.haptic);
+                }
+
+                this.gameOver();
             }
-
-            this.gameOver();
         }
         // Handle scoreable items
         else if (item.isScoreable()) {
@@ -580,14 +591,12 @@ export class Game {
                 this.telegramService.hapticFeedback(config.haptic);
             }
 
-            // Increase difficulty (only if no power-up is active)
-            if (!this.powerUpActive) {
-                this.increaseDifficulty();
-            }
+            // Increase difficulty
+            this.increaseDifficulty();
         }
 
+        // Remove item from stage
         item.removeFromStage(this.app.stage);
-        this.fallingItems.splice(index, 1);
     }
 
     /**
@@ -601,18 +610,21 @@ export class Game {
     createScorePopup(x, y, scoreValue, color, itemName) {
         const popup = new ScorePopup(x, y, scoreValue, color, itemName);
         popup.addToStage(this.app.stage);
-        this.scorePopups.push(popup);
+        this.entityManager.addPopup(popup);
+
+        // Sync backward compatibility
+        this.scorePopups = this.entityManager.getAllPopups();
     }
 
     /**
      * Handle catching a power-up
-     * Now uses configuration system for any power-up type
+     * Simplified to use PowerUpEffectManager
      * @param {FallingItem} item - The power-up item
      * @param {Object} position - Position where power-up was caught
      */
     handlePowerUpCatch(item, position) {
         const config = item.getConfig();
-        console.log(`Power-up caught: ${config.id}`);
+        console.log(`[Game] Power-up caught: ${config.id}`);
 
         // Create particle effect
         this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
@@ -622,217 +634,33 @@ export class Game {
             this.telegramService.hapticFeedback(config.haptic);
         }
 
-        // Apply effect based on type
-        if (config.effectType === 'speed_multiplier') {
-            this.applySpeedMultiplierEffect(config);
-        }
-        else if (config.effectType === 'score_multiplier') {
-            this.applyScoreMultiplierEffect(config);
-        }
-        else if (config.effectType === 'clear_chimke') {
-            this.applyChimkeBlockEffect(config);
-        }
-        // Add more effect types here in the future
-        // else if (config.effectType === 'invincibility') { ... }
+        // Use PowerUpEffectManager to handle all effects
+        this.powerUpManager.applyEffect(config);
     }
 
-    /**
-     * Apply speed multiplier power-up effect
-     * @param {Object} config - Power-up configuration
-     */
-    applySpeedMultiplierEffect(config) {
-        // If power-up already active, just restart the timer (don't change speeds)
-        if (this.powerUpActive) {
-            console.log(`Power-up already active! Restarting timer for ${config.duration}ms`);
-
-            // Restart timer UI
-            if (this.powerUpTimer) {
-                this.powerUpTimer.start(config.id, config.duration);
-            }
-
-            return; // Don't change speeds or save state again
-        }
-
-        // First time activating power-up - store original speed before slowing down
-        this.powerUpActive = true;
-        this.originalSpeedMultiplier = this.currentSpeedMultiplier;
-
-        // Apply slow-down effect (multiply current speed by effectValue, e.g., 0.5 = half speed)
-        this.currentSpeedMultiplier = this.currentSpeedMultiplier * config.effectValue;
-
-        // Update all falling items with new slowed speed
-        this.updateFallingItemsSpeeds();
-
-        // Update speed display
-        if (this.speedDisplay) {
-            this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
-        }
-
-        // Start timer
-        if (this.powerUpTimer) {
-            this.powerUpTimer.start(config.id, config.duration);
-        }
-
-        console.log(`Speed changed from ${this.originalSpeedMultiplier.toFixed(2)}x to ${this.currentSpeedMultiplier.toFixed(2)}x for ${config.duration}ms`);
-    }
-
-    /**
-     * Restore speed after power-up expires
-     */
-    restoreSpeed() {
-        console.log(`Power-up expired! Restoring speed from ${this.currentSpeedMultiplier.toFixed(2)}x to ${this.originalSpeedMultiplier.toFixed(2)}x`);
-
-        this.powerUpActive = false;
-        this.currentSpeedMultiplier = this.originalSpeedMultiplier;
-
-        // Update all falling items with restored speed
-        this.updateFallingItemsSpeeds();
-
-        // Update speed display
-        if (this.speedDisplay) {
-            this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
-        }
-
-        console.log(`Speed restored to ${this.currentSpeedMultiplier.toFixed(2)}x`);
-    }
-
-    /**
-     * Apply score multiplier power-up effect
-     * @param {Object} config - Power-up configuration
-     */
-    applyScoreMultiplierEffect(config) {
-        // If score multiplier already active, just restart the timer
-        if (this.scoreMultiplierActive) {
-            console.log(`Score multiplier already active! Restarting timer for ${config.duration}ms`);
-
-            // Restart timer UI
-            if (this.powerUpTimer) {
-                this.powerUpTimer.start(config.id, config.duration);
-            }
-
-            return; // Don't change multiplier, just restart timer
-        }
-
-        // First time activating score multiplier
-        this.scoreMultiplierActive = true;
-        this.currentScoreMultiplier = config.effectValue;
-
-        // Start timer
-        if (this.powerUpTimer) {
-            this.powerUpTimer.start(config.id, config.duration);
-        }
-
-        console.log(`Score multiplier active! All scores x${this.currentScoreMultiplier.toFixed(1)} for ${config.duration}ms`);
-    }
-
-    /**
-     * Restore score multiplier after power-up expires
-     */
-    restoreScoreMultiplier() {
-        console.log(`Score multiplier expired! Restoring to 1.0x`);
-
-        this.scoreMultiplierActive = false;
-        this.currentScoreMultiplier = 1.0;
-
-        console.log(`Score multiplier restored to ${this.currentScoreMultiplier.toFixed(1)}x`);
-    }
-
-    /**
-     * Apply chimke block power-up effect (tablet)
-     * @param {Object} config - Power-up configuration
-     */
-    applyChimkeBlockEffect(config) {
-        // If chimke block already active, just restart the timer
-        if (this.chimkeBlockActive) {
-            console.log(`Chimke block already active! Restarting timer for ${config.duration}ms`);
-
-            // Restart timer UI
-            if (this.powerUpTimer) {
-                this.powerUpTimer.start(config.id, config.duration);
-            }
-
-            return; // Don't clear chimke again, just restart timer
-        }
-
-        // First time activating chimke block
-        this.chimkeBlockActive = true;
-
-        // Clear all existing chimke items from the screen
-        this.clearAllChimke();
-
-        // Start timer
-        if (this.powerUpTimer) {
-            this.powerUpTimer.start(config.id, config.duration);
-        }
-
-        console.log(`Chimke block active! No chimke will spawn for ${config.duration}ms`);
-    }
-
-    /**
-     * Clear all chimke items from the screen
-     */
-    clearAllChimke() {
-        let clearedCount = 0;
-
-        // Remove all chimke items from falling items array
-        for (let i = this.fallingItems.length - 1; i >= 0; i--) {
-            const item = this.fallingItems[i];
-            if (item && item.isGameOver()) { // chimke items are game-over items
-                // Create particle effect when removing
-                const position = item.getPosition();
-                const config = item.getConfig();
-                this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
-
-                // Remove from stage and array
-                item.removeFromStage(this.app.stage);
-                this.fallingItems.splice(i, 1);
-                clearedCount++;
-            }
-        }
-
-        console.log(`Cleared ${clearedCount} chimke items from the screen!`);
-    }
-
-    /**
-     * Restore chimke spawning after power-up expires
-     */
-    restoreChimkeSpawning() {
-        console.log(`Chimke block expired! Chimke can spawn again`);
-
-        this.chimkeBlockActive = false;
-    }
+    // OLD POWER-UP METHODS REMOVED - Now handled by PowerUpEffectManager
 
     /**
      * Update all falling items with current speed
      */
     updateFallingItemsSpeeds() {
-        for (const item of this.fallingItems) {
-            if (item && item.updateSpeed) {
-                item.updateSpeed(this.currentSpeedMultiplier);
-            }
-        }
+        this.entityManager.updateAllSpeeds(this.currentSpeedMultiplier);
     }
 
+    /**
+     * Increase difficulty - now uses DifficultyManager
+     */
     increaseDifficulty() {
-        // Increase speed multiplier
-        const speedIncrease = DIFFICULTY_CONFIG.speedIncreasePerScore;
-        this.currentSpeedMultiplier = Math.min(
-            this.currentSpeedMultiplier + speedIncrease,
-            DIFFICULTY_CONFIG.maxSpeedMultiplier
-        );
+        const newDifficulty = this.difficultyManager.increaseDifficulty();
 
-        // Decrease spawn interval (spawn faster)
-        this.currentSpawnInterval = Math.max(
-            this.currentSpawnInterval - DIFFICULTY_CONFIG.spawnRateIncrease,
-            DIFFICULTY_CONFIG.minSpawnInterval
-        );
+        // Sync to local variables for backward compatibility
+        this.currentSpeedMultiplier = newDifficulty.speedMultiplier;
+        this.currentSpawnInterval = newDifficulty.spawnInterval;
 
         // Update speed display
         if (this.speedDisplay) {
             this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
         }
-
-        console.log(`Difficulty increased! Speed: ${this.currentSpeedMultiplier.toFixed(2)}x, Spawn interval: ${this.currentSpawnInterval}`);
     }
 
     /**
@@ -879,25 +707,16 @@ export class Game {
      * Clear all falling items from the game
      */
     clearFallingItems() {
-        for (const item of this.fallingItems) {
-            if (item && item.removeFromStage) {
-                item.removeFromStage(this.app.stage);
-            }
-        }
-        this.fallingItems = [];
+        this.entityManager.clearAllItems();
+        this.fallingItems = []; // Sync backward compatibility
     }
 
     /**
      * Clear all score popups
      */
     clearScorePopups() {
-        for (const popup of this.scorePopups) {
-            if (popup && popup.removeFromStage) {
-                popup.removeFromStage(this.app.stage);
-                popup.destroy();
-            }
-        }
-        this.scorePopups = [];
+        this.entityManager.clearAllPopups();
+        this.scorePopups = []; // Sync backward compatibility
     }
 
     /**
@@ -971,9 +790,19 @@ export class Game {
     resetGameState() {
         this.spawnTimer = 0;
         this.scoreTimer = 0;
-        this.currentSpeedMultiplier = 1.0;
+
+        // Reset managers
+        this.difficultyManager.reset();
+        if (this.powerUpManager) {
+            this.powerUpManager.clearAll();
+        }
+
+        // Sync from difficulty manager
+        this.currentSpeedMultiplier = this.difficultyManager.getSpeedMultiplier();
+        this.currentSpawnInterval = this.difficultyManager.getSpawnInterval();
         this.currentScoreMultiplier = 1.0;
-        this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
+
+        // Reset entity arrays
         this.fallingItems = [];
         this.scorePopups = [];
 
@@ -984,11 +813,10 @@ export class Game {
         this.speedDisplay = null;
         this.powerUpTimer = null;
 
-        // Reset power-up state
-        this.powerUpActive = false;
-        this.scoreMultiplierActive = false;
+        // Reset power-up flags
         this.chimkeBlockActive = false;
-        this.originalSpeedMultiplier = 1.0;
+        this.invincible = false;
+        this.itemsFrozen = false;
     }
 
     /**
@@ -1028,6 +856,15 @@ export class Game {
         if (this.audioManager) {
             this.audioManager.destroy();
         }
+
+        // Destroy new managers
+        if (this.powerUpManager) {
+            this.powerUpManager.destroy();
+        }
+        if (this.entityManager) {
+            this.entityManager.destroy();
+        }
+        // DifficultyManager doesn't need cleanup
 
         // Destroy particle system
         if (this.particleSystem) {
