@@ -2,14 +2,10 @@ import * as PIXI from 'pixi.js';
 import {
     GAME_CONFIG,
     DIFFICULTY_CONFIG,
-    POWERUP_CONFIG,
-    ITEMS_CONFIG,
-    POWERUPS_CONFIG,
-    getRandomItem,
-    getRandomPowerUp,
     updateGameDimensions
 } from './config.js';
 import { AssetLoader } from './utils/AssetLoader.js';
+import { configManager } from './managers/ConfigManager.js';
 import { Player } from './entities/Player.js';
 import { FallingItem } from './entities/FallingItem.js';
 import { CollisionSystem } from './systems/CollisionSystem.js';
@@ -109,8 +105,11 @@ export class Game {
 
             document.getElementById('gameContainer').appendChild(this.app.canvas);
 
-            // Load assets
-            await this.assetLoader.loadAll();
+            // Load configuration from JSON files
+            await configManager.load();
+
+            // Load assets dynamically from configuration
+            await this.assetLoader.loadAll(configManager);
 
             // Load background music
             await this.audioManager.loadBackgroundMusic('/assets/background_music.mp3');
@@ -361,7 +360,7 @@ export class Game {
      */
     spawnFallingItem() {
         // Try to spawn a power-up first
-        const powerUp = getRandomPowerUp();
+        const powerUp = configManager.getRandomPowerup();
 
         let itemConfig;
         let texture;
@@ -372,7 +371,7 @@ export class Game {
             texture = this.assetLoader.getTexture(powerUp.texture);
         } else {
             // Spawn regular item based on rarity weights
-            itemConfig = getRandomItem();
+            itemConfig = configManager.getRandomItem();
             texture = this.assetLoader.getTexture(itemConfig.texture);
         }
 

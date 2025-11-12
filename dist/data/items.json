@@ -1,0 +1,44 @@
+{
+  "chimke": {
+    "id": "chimke",
+    "type": "bad",
+    "nameKey": "items.chimke",
+    "descriptionKey": "items.chimkeDesc",
+    "texture": "weedLeafBrown",
+    "assetPath": "/weed-leaf-brown.svg",
+    "scoreValue": 0,
+    "gameOver": true,
+    "rarity": 60,
+    "color": "#FF6B6B",
+    "particleColor": "#FF6B6B",
+    "haptic": "error"
+  },
+  "vorinio_dumai": {
+    "id": "vorinio_dumai",
+    "type": "good",
+    "nameKey": "items.vorinioDumai",
+    "descriptionKey": "items.vorinioDumaiDesc",
+    "texture": "weedLeaf",
+    "assetPath": "/weed-leaf.svg",
+    "scoreValue": 3,
+    "gameOver": false,
+    "rarity": 30,
+    "color": "#00FF00",
+    "particleColor": "#4CAF50",
+    "haptic": "light"
+  },
+  "vorinio_sniegas": {
+    "id": "vorinio_sniegas",
+    "type": "good",
+    "nameKey": "items.vorinioSniegas",
+    "descriptionKey": "items.vorinioSniegasDesc",
+    "texture": "snow",
+    "assetPath": "/assets/snow.svg",
+    "scoreValue": 5,
+    "gameOver": false,
+    "rarity": 10,
+    "color": "#00FFFF",
+    "particleColor": "#87CEEB",
+    "haptic": "medium"
+  }
+}

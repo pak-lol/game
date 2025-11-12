@@ -1,0 +1,19 @@
+{
+  "bucket": {
+    "id": "bucket",
+    "type": "powerup",
+    "nameKey": "powerups.bucket",
+    "descriptionKey": "powerups.bucketDescription",
+    "texture": "bucket",
+    "assetPath": "/assets/bucket.svg",
+    "icon": "🪣",
+    "spawnChance": 0.05,
+    "color": "#FFD700",
+    "particleColor": "#FFD700",
+    "haptic": "success",
+    "duration": 5000,
+    "effectType": "speed_multiplier",
+    "effectValue": 0.5,
+    "rarity": 5
+  }
+}

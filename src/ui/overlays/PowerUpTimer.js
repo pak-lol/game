@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { GAME_CONFIG } from '../../config.js';
+import { configManager } from '../../managers/ConfigManager.js';
 import { i18n } from '../../utils/i18n.js';
 
 /**
@@ -86,27 +87,24 @@ export class PowerUpTimer {
      * @param {number} duration - Duration in milliseconds
      */
     start(powerUpId, duration) {
-        // Import config dynamically
-        import('../../config.js').then(({ POWERUPS_CONFIG }) => {
-            const config = POWERUPS_CONFIG[powerUpId];
-            if (!config) {
-                console.error(`Power-up config not found: ${powerUpId}`);
-                return;
-            }
+        const config = configManager.getPowerup(powerUpId);
+        if (!config) {
+            console.error(`[PowerUpTimer] Power-up config not found: ${powerUpId}`);
+            return;
+        }
 
-            this.active = true;
-            this.powerUpType = powerUpId;
-            this.duration = duration;
-            this.elapsed = 0;
-            this.container.visible = true;
+        this.active = true;
+        this.powerUpType = powerUpId;
+        this.duration = duration;
+        this.elapsed = 0;
+        this.container.visible = true;
 
-            // Set display from config
-            this.iconText.text = config.icon || '✨';
-            this.labelText.text = i18n.t(config.nameKey);
-            this.descriptionText.text = i18n.t(config.descriptionKey);
+        // Set display from config
+        this.iconText.text = config.icon || '✨';
+        this.labelText.text = i18n.t(config.nameKey);
+        this.descriptionText.text = i18n.t(config.descriptionKey);
 
-            this.updateDisplay();
-        });
+        this.updateDisplay();
     }
 
     /**

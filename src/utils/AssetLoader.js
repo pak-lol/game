@@ -5,28 +5,60 @@ export class AssetLoader {
         this.textures = {};
     }
 
-    async loadAll() {
+    /**
+     * Load all assets dynamically from ConfigManager
+     * @param {ConfigManager} configManager - Configuration manager instance
+     */
+    async loadAll(configManager) {
         try {
-            console.log('Loading assets...');
+            console.log('[AssetLoader] Loading assets...');
+
+            // Always load player basket
             this.textures.basket = await PIXI.Assets.load('/basket.svg');
-            console.log('✓ Basket loaded');
-            this.textures.weedLeaf = await PIXI.Assets.load('/weed-leaf.svg');
-            console.log('✓ Weed leaf loaded');
-            this.textures.weedLeafBrown = await PIXI.Assets.load('/weed-leaf-brown.svg');
-            console.log('✓ Brown leaf loaded');
-            this.textures.snow = await PIXI.Assets.load('/assets/snow.svg');
-            console.log('✓ Snow loaded');
-            this.textures.bucket = await PIXI.Assets.load('/assets/bucket.svg');
-            console.log('✓ Bucket loaded');
-            console.log('All assets loaded successfully!');
+            console.log('  ✓ Basket loaded');
+
+            // Get all asset paths from config
+            const assetPaths = configManager.getAllAssetPaths();
+
+            // Load all assets in parallel
+            const loadPromises = assetPaths.map(async ({ key, path }) => {
+                try {
+                    this.textures[key] = await PIXI.Assets.load(path);
+                    console.log(`  ✓ ${key} loaded (${path})`);
+                } catch (error) {
+                    console.error(`  ✗ Failed to load ${key} from ${path}:`, error);
+                    throw error;
+                }
+            });
+
+            await Promise.all(loadPromises);
+
+            console.log(`[AssetLoader] All assets loaded successfully! (${Object.keys(this.textures).length} total)`);
             return this.textures;
         } catch (error) {
-            console.error('Error loading assets:', error);
+            console.error('[AssetLoader] Error loading assets:', error);
             throw error;
         }
     }
 
     getTexture(name) {
+        if (!this.textures[name]) {
+            console.warn(`[AssetLoader] Texture not found: ${name}`);
+        }
         return this.textures[name];
+    }
+
+    /**
+     * Check if a texture exists
+     */
+    hasTexture(name) {
+        return !!this.textures[name];
+    }
+
+    /**
+     * Get all loaded texture names
+     */
+    getLoadedTextures() {
+        return Object.keys(this.textures);
     }
 }
