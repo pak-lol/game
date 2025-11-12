@@ -50,6 +50,8 @@
     "bucket": "Kibiras",
     "slowdown": "Lėtinimas",
     "bucketCaught": "Kibiras pagautas!",
-    "bucketDescription": "Sumažina žaidimo greitį 2x!"
+    "bucketDescription": "Sumažina žaidimo greitį 2x!",
+    "mushroom": "Vorinio Grybai",
+    "mushroomDescription": "Dvigubi taškai 8 sekundėms! 2x"
   }
 }

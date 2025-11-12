@@ -15,5 +15,22 @@
     "effectType": "speed_multiplier",
     "effectValue": 0.5,
     "rarity": 5
+  },
+  "mushroom": {
+    "id": "mushroom",
+    "type": "powerup",
+    "nameKey": "powerups.mushroom",
+    "descriptionKey": "powerups.mushroomDescription",
+    "texture": "mushroom",
+    "assetPath": "/assets/mushroom.svg",
+    "icon": "🍄",
+    "spawnChance": 0.03,
+    "color": "#FF6B6B",
+    "particleColor": "#FFD700",
+    "haptic": "success",
+    "duration": 8000,
+    "effectType": "score_multiplier",
+    "effectValue": 2.0,
+    "rarity": 5
   }
 }

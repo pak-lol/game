@@ -56,9 +56,11 @@ export class Game {
         this.gameLoopBound = null;
         this.currentSpeedMultiplier = 1.0;
         this.originalSpeedMultiplier = 1.0; // Store original speed before power-up
+        this.currentScoreMultiplier = 1.0; // Score multiplier for power-ups
         this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
         this.username = '';
         this.powerUpActive = false;
+        this.scoreMultiplierActive = false;
 
         // Background reference
         this.background = null;
@@ -401,15 +403,21 @@ export class Game {
             // Use deltaMS for accurate millisecond timing
             const stillActive = this.powerUpTimer.update(delta.deltaMS);
             if (!stillActive) {
-                // Timer finished, restore original speed
-                this.restoreSpeed();
+                // Timer finished, restore effects based on what's active
+                if (this.powerUpActive) {
+                    this.restoreSpeed();
+                }
+                if (this.scoreMultiplierActive) {
+                    this.restoreScoreMultiplier();
+                }
             }
         }
 
         // Add 1 score per second (passive scoring)
         this.scoreTimer += delta.deltaMS; // deltaMS is in milliseconds
         if (this.scoreTimer >= 1000) { // 1000ms = 1 second
-            this.scoreDisplay.increment();
+            const passiveScore = Math.floor(1 * this.currentScoreMultiplier);
+            this.scoreDisplay.add(passiveScore);
             this.scoreTimer -= 1000; // Subtract 1 second, keep remainder for precision
         }
 
@@ -483,11 +491,12 @@ export class Game {
         // Handle scoreable items
         else if (item.isScoreable()) {
             const scoreValue = item.getScoreValue();
-            this.scoreDisplay.add(scoreValue);
+            const multipliedScore = Math.floor(scoreValue * this.currentScoreMultiplier);
+            this.scoreDisplay.add(multipliedScore);
             this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
 
-            // Create beautiful score popup
-            this.createScorePopup(position.x, position.y, scoreValue, config.color, i18n.t(config.nameKey));
+            // Create beautiful score popup with multiplied score
+            this.createScorePopup(position.x, position.y, multipliedScore, config.color, i18n.t(config.nameKey));
 
             // Haptic feedback
             if (this.telegramService && config.haptic) {
@@ -540,8 +549,10 @@ export class Game {
         if (config.effectType === 'speed_multiplier') {
             this.applySpeedMultiplierEffect(config);
         }
+        else if (config.effectType === 'score_multiplier') {
+            this.applyScoreMultiplierEffect(config);
+        }
         // Add more effect types here in the future
-        // else if (config.effectType === 'score_multiplier') { ... }
         // else if (config.effectType === 'invincibility') { ... }
     }
 
@@ -603,6 +614,47 @@ export class Game {
         }
 
         console.log(`Speed restored to ${this.currentSpeedMultiplier.toFixed(2)}x`);
+    }
+
+    /**
+     * Apply score multiplier power-up effect
+     * @param {Object} config - Power-up configuration
+     */
+    applyScoreMultiplierEffect(config) {
+        // If score multiplier already active, just restart the timer
+        if (this.scoreMultiplierActive) {
+            console.log(`Score multiplier already active! Restarting timer for ${config.duration}ms`);
+
+            // Restart timer UI
+            if (this.powerUpTimer) {
+                this.powerUpTimer.start(config.id, config.duration);
+            }
+
+            return; // Don't change multiplier, just restart timer
+        }
+
+        // First time activating score multiplier
+        this.scoreMultiplierActive = true;
+        this.currentScoreMultiplier = config.effectValue;
+
+        // Start timer
+        if (this.powerUpTimer) {
+            this.powerUpTimer.start(config.id, config.duration);
+        }
+
+        console.log(`Score multiplier active! All scores x${this.currentScoreMultiplier.toFixed(1)} for ${config.duration}ms`);
+    }
+
+    /**
+     * Restore score multiplier after power-up expires
+     */
+    restoreScoreMultiplier() {
+        console.log(`Score multiplier expired! Restoring to 1.0x`);
+
+        this.scoreMultiplierActive = false;
+        this.currentScoreMultiplier = 1.0;
+
+        console.log(`Score multiplier restored to ${this.currentScoreMultiplier.toFixed(1)}x`);
     }
 
     /**
@@ -774,6 +826,7 @@ export class Game {
         this.spawnTimer = 0;
         this.scoreTimer = 0;
         this.currentSpeedMultiplier = 1.0;
+        this.currentScoreMultiplier = 1.0;
         this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
         this.fallingItems = [];
         this.scorePopups = [];
@@ -787,6 +840,7 @@ export class Game {
 
         // Reset power-up state
         this.powerUpActive = false;
+        this.scoreMultiplierActive = false;
         this.originalSpeedMultiplier = 1.0;
     }
 
