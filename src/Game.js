@@ -225,8 +225,8 @@ export class Game {
             // Update score display position if it exists
             if (this.scoreDisplay && this.scoreDisplay.text) {
                 // Keep score in top-left corner
-                this.scoreDisplay.text.x = 20;
-                this.scoreDisplay.text.y = 20;
+                this.scoreDisplay.text.x = 10;
+                this.scoreDisplay.text.y = 10;
             }
 
             // Update speed display position if it exists

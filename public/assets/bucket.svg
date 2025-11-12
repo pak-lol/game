@@ -1,106 +1,58 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Bucket shadow -->
-  <ellipse cx="32" cy="58" rx="18" ry="3" fill="black" opacity="0.2"/>
-
-  <!-- Bucket body gradient -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Bucket body -->
   <defs>
-    <linearGradient id="bucketGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+    <linearGradient id="bucketGrad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
       <stop offset="50%" style="stop-color:#FFA500;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="bucketHighlight" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
-      <stop offset="50%" style="stop-color:#FFFFFF;stop-opacity:0.2" />
-      <stop offset="100%" style="stop-color:#FFFFFF;stop-opacity:0" />
+    <linearGradient id="handleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#C0C0C0;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#E8E8E8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C0C0C0;stop-opacity:1" />
     </linearGradient>
-    <radialGradient id="waterGradient" cx="50%" cy="30%">
-      <stop offset="0%" style="stop-color:#87CEEB;stop-opacity:0.9" />
-      <stop offset="70%" style="stop-color:#4A90E2;stop-opacity:0.8" />
-      <stop offset="100%" style="stop-color:#2E5C8A;stop-opacity:0.7" />
-    </radialGradient>
   </defs>
 
-  <!-- Bucket main body -->
-  <path d="M 16 20 L 14 50 Q 14 54 18 54 L 46 54 Q 50 54 50 50 L 48 20 Z"
-        fill="url(#bucketGradient)"
-        stroke="#CC6600"
+  <!-- Main bucket shape (trapezoid) -->
+  <path d="M 25 40 L 20 85 Q 20 90 25 90 L 75 90 Q 80 90 80 85 L 75 40 Z"
+        fill="url(#bucketGrad)"
+        stroke="#CC7000"
         stroke-width="2"/>
 
   <!-- Bucket rim -->
-  <ellipse cx="32" cy="20" rx="16" ry="4"
-           fill="#FFD700"
-           stroke="#CC6600"
+  <ellipse cx="50" cy="40" rx="27" ry="6"
+           fill="#FFE44D"
+           stroke="#CC7000"
            stroke-width="2"/>
 
-  <!-- Bucket rim top highlight -->
-  <ellipse cx="32" cy="19" rx="16" ry="3"
-           fill="url(#bucketHighlight)"
-           opacity="0.6"/>
+  <!-- Inner shadow for depth -->
+  <ellipse cx="50" cy="40" rx="23" ry="4"
+           fill="#CC7000"
+           opacity="0.3"/>
 
-  <!-- Water inside bucket -->
-  <path d="M 17 28 L 15.5 46 Q 15.5 50 19 50 L 45 50 Q 48.5 50 48.5 46 L 47 28 Z"
-        fill="url(#waterGradient)"/>
-
-  <!-- Water surface -->
-  <ellipse cx="32" cy="28" rx="15" ry="3.5"
-           fill="#87CEEB"
-           opacity="0.7"/>
-
-  <!-- Water shine effect -->
-  <ellipse cx="28" cy="28" rx="8" ry="2"
-           fill="white"
-           opacity="0.4"/>
-
-  <!-- Bucket handle left attachment -->
-  <circle cx="18" cy="22" r="2.5" fill="#CC6600" stroke="#8B4500" stroke-width="1"/>
-
-  <!-- Bucket handle right attachment -->
-  <circle cx="46" cy="22" r="2.5" fill="#CC6600" stroke="#8B4500" stroke-width="1"/>
-
-  <!-- Bucket handle -->
-  <path d="M 18 22 Q 32 8 46 22"
+  <!-- Bucket handle (wire) -->
+  <path d="M 25 40 Q 50 15 75 40"
         fill="none"
-        stroke="#CC6600"
+        stroke="url(#handleGrad)"
         stroke-width="3"
         stroke-linecap="round"/>
 
-  <!-- Handle highlight -->
-  <path d="M 18 22 Q 32 10 46 22"
-        fill="none"
-        stroke="#FFD700"
+  <!-- Handle connection points -->
+  <circle cx="25" cy="40" r="3" fill="#A0A0A0" stroke="#707070" stroke-width="1"/>
+  <circle cx="75" cy="40" r="3" fill="#A0A0A0" stroke="#707070" stroke-width="1"/>
+
+  <!-- Highlight on bucket -->
+  <ellipse cx="35" cy="55" rx="8" ry="15"
+           fill="#FFEB99"
+           opacity="0.4"/>
+
+  <!-- Shadow lines for 3D effect -->
+  <path d="M 23 50 L 22 80"
+        stroke="#CC7000"
         stroke-width="1.5"
-        stroke-linecap="round"
-        opacity="0.6"/>
-
-  <!-- Left side highlight on bucket -->
-  <path d="M 20 24 L 19 48 Q 19 50 21 50"
-        fill="none"
-        stroke="white"
-        stroke-width="2"
-        opacity="0.3"
-        stroke-linecap="round"/>
-
-  <!-- Sparkle effect 1 -->
-  <circle cx="26" cy="30" r="1.5" fill="white" opacity="0.8">
-    <animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- Sparkle effect 2 -->
-  <circle cx="38" cy="35" r="1" fill="white" opacity="0.6">
-    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-
-  <!-- Droplet icon on bucket (power-up indicator) -->
-  <g transform="translate(30, 40)">
-    <path d="M 2 0 Q 4 -4 6 0 Q 6 3 4 4 Q 2 3 2 0 Z"
-          fill="#4A90E2"
-          opacity="0.8">
-      <animateTransform attributeName="transform"
-                        type="translate"
-                        values="0,0; 0,-2; 0,0"
-                        dur="1s"
-                        repeatCount="indefinite"/>
-    </path>
-  </g>
+        opacity="0.3"/>
+  <path d="M 77 50 L 78 80"
+        stroke="#CC7000"
+        stroke-width="1.5"
+        opacity="0.3"/>
 </svg>

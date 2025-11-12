@@ -10,6 +10,9 @@ export class SpeedDisplay {
         this.container = new PIXI.Container();
         this.speedMultiplier = 1.0;
 
+        // Responsive sizing
+        const sizes = this.getResponsiveSizes();
+
         // Create background
         this.background = new PIXI.Graphics();
         this.container.addChild(this.background);
@@ -18,7 +21,7 @@ export class SpeedDisplay {
         this.iconText = new PIXI.Text({
             text: '⚡',
             style: {
-                fontSize: 28,
+                fontSize: sizes.iconSize,
                 fill: '#FFD700'
             }
         });
@@ -29,7 +32,7 @@ export class SpeedDisplay {
             text: i18n.t('game.speed'),
             style: {
                 fontFamily: 'Arial',
-                fontSize: 16,
+                fontSize: sizes.labelSize,
                 fill: '#FFFFFF',
                 fontWeight: 'normal'
             }
@@ -41,10 +44,10 @@ export class SpeedDisplay {
             text: '1.0x',
             style: {
                 fontFamily: 'Arial',
-                fontSize: 24,
+                fontSize: sizes.valueSize,
                 fill: '#4CAF50',
                 fontWeight: 'bold',
-                stroke: { color: '#1B5E20', width: 3 }
+                stroke: { color: '#1B5E20', width: 2 }
             }
         });
         this.container.addChild(this.valueText);
@@ -62,8 +65,47 @@ export class SpeedDisplay {
         this.pulseDirection = 1;
         this.glowAlpha = 0.5;
 
+        // Store sizes for later use
+        this.sizes = sizes;
+
         this.updateDisplay();
         this.updateLayout();
+    }
+
+    /**
+     * Get responsive sizes based on screen width
+     */
+    getResponsiveSizes() {
+        const screenWidth = GAME_CONFIG.width;
+
+        // Small screens (< 360)
+        if (screenWidth < 360) {
+            return {
+                iconSize: 18,
+                labelSize: 11,
+                valueSize: 16,
+                width: 130,
+                height: 50
+            };
+        }
+        // Medium screens (360-430)
+        if (screenWidth < 430) {
+            return {
+                iconSize: 20,
+                labelSize: 12,
+                valueSize: 18,
+                width: 145,
+                height: 55
+            };
+        }
+        // Large screens (> 430)
+        return {
+            iconSize: 22,
+            labelSize: 13,
+            valueSize: 20,
+            width: 160,
+            height: 60
+        };
     }
 
     /**
@@ -127,14 +169,19 @@ export class SpeedDisplay {
         const maxSpeed = 2.5;
         const filledBars = Math.ceil((this.speedMultiplier / maxSpeed) * 5);
 
+        // Responsive bar sizing
+        const barWidth = this.sizes.width < 140 ? 6 : 7;
+        const baseHeight = this.sizes.width < 140 ? 12 : 14;
+        const barSpacing = this.sizes.width < 140 ? 9 : 10;
+        const startX = this.sizes.width < 140 ? 70 : 80;
+        const barY = this.sizes.height - 12;
+
         for (let i = 0; i < 5; i++) {
             const bar = this.speedBars[i];
             bar.clear();
 
-            const barWidth = 8;
-            const barHeight = 15 - (i * 2);
-            const barX = 95 + (i * 12);
-            const barY = 52;
+            const barHeight = baseHeight - (i * 2);
+            const barX = startX + (i * barSpacing);
 
             if (i < filledBars) {
                 // Filled bar
@@ -155,8 +202,8 @@ export class SpeedDisplay {
     drawBackground() {
         this.background.clear();
 
-        const width = 180;
-        const height = 70;
+        const width = this.sizes.width;
+        const height = this.sizes.height;
         const x = 0;
         const y = 0;
 
@@ -165,15 +212,15 @@ export class SpeedDisplay {
         const colorValue = parseInt(speedColor.replace('#', '0x'));
 
         // Outer glow
-        this.background.roundRect(x - 2, y - 2, width + 4, height + 4, 12);
+        this.background.roundRect(x - 2, y - 2, width + 4, height + 4, 10);
         this.background.fill({ color: colorValue, alpha: 0.2 });
 
         // Main background
-        this.background.roundRect(x, y, width, height, 10);
+        this.background.roundRect(x, y, width, height, 8);
         this.background.fill({ color: 0x000000, alpha: 0.7 });
 
         // Border with speed color
-        this.background.roundRect(x, y, width, height, 10);
+        this.background.roundRect(x, y, width, height, 8);
         this.background.stroke({ color: colorValue, width: 2, alpha: 0.8 });
     }
 
@@ -183,21 +230,23 @@ export class SpeedDisplay {
     updateLayout() {
         const screenWidth = GAME_CONFIG.width;
 
-        // Position in top-right corner
-        this.container.x = screenWidth - 200;
-        this.container.y = 20;
+        // Position in top-right corner with responsive margin
+        const margin = this.sizes.width < 140 ? 10 : 15;
+        this.container.x = screenWidth - this.sizes.width - margin;
+        this.container.y = 10;
 
         // Icon position
-        this.iconText.x = 10;
-        this.iconText.y = 8;
+        this.iconText.x = 8;
+        this.iconText.y = 6;
 
         // Label position
-        this.labelText.x = 45;
-        this.labelText.y = 12;
+        const labelX = this.sizes.width < 140 ? 30 : 35;
+        this.labelText.x = labelX;
+        this.labelText.y = this.sizes.height < 55 ? 8 : 10;
 
         // Value position
-        this.valueText.x = 45;
-        this.valueText.y = 32;
+        this.valueText.x = labelX;
+        this.valueText.y = this.sizes.height < 55 ? 22 : 26;
     }
 
     /**
