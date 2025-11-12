@@ -142,4 +142,85 @@ export class FallingItem {
         this.speedMultiplier = newSpeedMultiplier;
         this.speed = baseSpeed * this.speedMultiplier; // Apply new multiplier
     }
+
+    /**
+     * Initialize/re-initialize the item with new parameters (for object pooling)
+     * @param {PIXI.Texture} texture - The texture to display
+     * @param {Object} itemConfig - Item configuration object
+     * @param {number} speedMultiplier - Current game speed multiplier
+     */
+    init(texture, itemConfig, speedMultiplier = 1.0) {
+        this.itemConfig = itemConfig;
+        this.type = itemConfig.id;
+        this.speedMultiplier = speedMultiplier;
+
+        // Update sprite texture
+        this.sprite.texture = texture;
+
+        // Randomize scale
+        const scale =
+            Math.random() * (ITEM_CONFIG.maxScale - ITEM_CONFIG.minScale) +
+            ITEM_CONFIG.minScale;
+        this.sprite.scale.set(scale);
+
+        // Update text label and color
+        const label = i18n.t(itemConfig.nameKey);
+        const textColor = itemConfig.color;
+        this.text.text = label.toUpperCase();
+        this.text.style.fill = textColor;
+
+        // Set random position
+        this.container.x = Math.random() * (GAME_CONFIG.width - 80) + 40;
+        this.container.y = -50;
+
+        // Set movement properties
+        const baseSpeed = Math.random() * (ITEM_CONFIG.baseMaxSpeed - ITEM_CONFIG.baseMinSpeed) + ITEM_CONFIG.baseMinSpeed;
+        this.speed = baseSpeed * this.speedMultiplier;
+        this.sprite.rotation = Math.random() * Math.PI * 2;
+        this.rotationSpeed = Math.random() * (ITEM_CONFIG.maxRotationSpeed - ITEM_CONFIG.minRotationSpeed) + ITEM_CONFIG.minRotationSpeed;
+
+        // Swing animation properties
+        this.swingOffset = Math.random() * Math.PI * 2;
+        this.swingSpeed = Math.random() * (ITEM_CONFIG.maxSwingSpeed - ITEM_CONFIG.minSwingSpeed) + ITEM_CONFIG.minSwingSpeed;
+        this.swingAmount = Math.random() * (ITEM_CONFIG.maxSwingAmount - ITEM_CONFIG.minSwingAmount) + ITEM_CONFIG.minSwingAmount;
+    }
+
+    /**
+     * Reset the item to initial state (for object pooling)
+     * Called when returning object to pool
+     */
+    reset() {
+        // Reset position off-screen
+        this.container.y = -100;
+        this.container.x = 0;
+
+        // Reset speed
+        this.speed = 0;
+        this.speedMultiplier = 1.0;
+
+        // Reset rotation
+        this.sprite.rotation = 0;
+        this.rotationSpeed = 0;
+
+        // Reset swing
+        this.swingOffset = 0;
+        this.swingSpeed = 0;
+        this.swingAmount = 0;
+
+        // Clear references (will be set in init)
+        this.itemConfig = null;
+        this.type = null;
+    }
+
+    /**
+     * Destroy the item and free resources
+     */
+    destroy() {
+        if (this.container.parent) {
+            this.container.parent.removeChild(this.container);
+        }
+        this.sprite.destroy();
+        this.text.destroy();
+        this.container.destroy();
+    }
 }

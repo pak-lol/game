@@ -1,3 +1,6 @@
+import { eventBus } from '../core/EventBus.js';
+import { GameEvents } from '../core/GameEvents.js';
+
 /**
  * Game state enumeration
  */
@@ -11,12 +14,13 @@ export const GameState = {
 
 /**
  * Manages game state transitions and state-based logic
+ * Now integrated with global EventBus for better decoupling
  */
 export class GameStateManager {
     constructor() {
         this.currentState = GameState.LOADING;
         this.previousState = null;
-        this.listeners = new Map();
+        this.listeners = new Map();  // Kept for backward compatibility
     }
 
     /**
@@ -37,6 +41,14 @@ export class GameStateManager {
         this.currentState = newState;
 
         console.log(`Game state changed: ${this.previousState} -> ${this.currentState}`);
+
+        // Emit event via EventBus
+        eventBus.emit(GameEvents.STATE_CHANGED, {
+            newState,
+            oldState: this.previousState
+        });
+
+        // Also notify old-style listeners (backward compatibility)
         this.notifyListeners(newState, this.previousState);
     }
 

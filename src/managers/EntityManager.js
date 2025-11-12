@@ -4,10 +4,12 @@ import { GAME_CONFIG, ITEM_CONFIG } from '../config.js';
 /**
  * EntityManager - Manages all falling items and score popups
  * Separates entity management from game logic
+ * Now uses object pooling for better performance
  */
 export class EntityManager {
-    constructor(game) {
+    constructor(game, itemPool = null) {
         this.game = game;
+        this.itemPool = itemPool;  // Optional item pool for performance
         this.fallingItems = [];
         this.scorePopups = [];
     }
@@ -19,7 +21,15 @@ export class EntityManager {
      * @param {number} speedMultiplier - Current speed multiplier
      */
     spawnItem(itemConfig, texture, speedMultiplier) {
-        const item = new FallingItem(texture, itemConfig, speedMultiplier);
+        let item;
+
+        // Use pool if available, otherwise create new
+        if (this.itemPool) {
+            item = this.itemPool.acquire(texture, itemConfig, speedMultiplier);
+        } else {
+            item = new FallingItem(texture, itemConfig, speedMultiplier);
+        }
+
         item.addToStage(this.game.app.stage);
         this.fallingItems.push(item);
 
@@ -45,8 +55,8 @@ export class EntityManager {
 
             // Check collision
             if (collisionCallback && collisionCallback(item, i)) {
-                // Item was caught - remove from stage and array
-                item.removeFromStage(this.game.app.stage);
+                // Item was caught - release to pool
+                this.releaseItem(item);
                 this.fallingItems.splice(i, 1);
                 removedCount++;
                 continue;
@@ -54,7 +64,7 @@ export class EntityManager {
 
             // Remove if off screen
             if (item.isOffScreen()) {
-                item.removeFromStage(this.game.app.stage);
+                this.releaseItem(item);
                 this.fallingItems.splice(i, 1);
                 removedCount++;
             }
@@ -111,12 +121,27 @@ export class EntityManager {
     }
 
     /**
+     * Release an item back to pool or destroy it
+     * @param {FallingItem} item - Item to release
+     */
+    releaseItem(item) {
+        if (this.itemPool) {
+            this.itemPool.release(item);
+        } else {
+            item.removeFromStage(this.game.app.stage);
+            if (item.destroy) {
+                item.destroy();
+            }
+        }
+    }
+
+    /**
      * Clear all falling items
      */
     clearAllItems() {
         for (const item of this.fallingItems) {
-            if (item && item.removeFromStage) {
-                item.removeFromStage(this.game.app.stage);
+            if (item) {
+                this.releaseItem(item);
             }
         }
         this.fallingItems = [];
@@ -148,7 +173,7 @@ export class EntityManager {
         for (let i = this.fallingItems.length - 1; i >= 0; i--) {
             const item = this.fallingItems[i];
             if (item && filterFn(item)) {
-                item.removeFromStage(this.game.app.stage);
+                this.releaseItem(item);
                 this.fallingItems.splice(i, 1);
                 removedCount++;
             }

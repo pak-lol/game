@@ -1,84 +1,209 @@
-import * as PIXI from 'pixi.js';
-import { GAME_CONFIG } from '../../config.js';
 import { configManager } from '../../managers/ConfigManager.js';
 import { i18n } from '../../utils/i18n.js';
 
 /**
- * Beautiful power-up timer display with countdown
+ * HTML-based power-up timer display with countdown
+ * Provides better text handling and responsive design
  */
 export class PowerUpTimer {
     constructor() {
-        this.container = new PIXI.Container();
         this.active = false;
         this.duration = 0;
         this.elapsed = 0;
         this.powerUpType = '';
+        this.animationFrame = null;
 
-        // Create background
-        this.background = new PIXI.Graphics();
-        this.container.addChild(this.background);
+        // Create HTML container
+        this.element = document.createElement('div');
+        this.element.id = 'powerUpTimer';
+        this.element.className = 'hidden';
+        this.element.innerHTML = `
+            <div class="power-up-timer-container">
+                <div class="power-up-content">
+                    <div class="power-up-icon">✨</div>
+                    <div class="power-up-info">
+                        <div class="power-up-label"></div>
+                        <div class="power-up-description"></div>
+                    </div>
+                    <div class="power-up-time">5.0s</div>
+                </div>
+                <div class="power-up-progress-bar">
+                    <div class="power-up-progress-fill"></div>
+                </div>
+            </div>
+        `;
 
-        // Create icon
-        this.iconText = new PIXI.Text({
-            text: '🪣',
-            style: {
-                fontSize: 32,
-                fill: '#FFD700'
+        // Add styles
+        this.addStyles();
+        
+        // Cache element references
+        this.iconElement = this.element.querySelector('.power-up-icon');
+        this.labelElement = this.element.querySelector('.power-up-label');
+        this.descriptionElement = this.element.querySelector('.power-up-description');
+        this.timeElement = this.element.querySelector('.power-up-time');
+        this.progressFillElement = this.element.querySelector('.power-up-progress-fill');
+    }
+
+    addStyles() {
+        if (document.getElementById('powerUpTimerStyles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'powerUpTimerStyles';
+        style.textContent = `
+            #powerUpTimer {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 100;
+                pointer-events: none;
+                max-width: calc(100% - 40px);
             }
-        });
-        this.container.addChild(this.iconText);
 
-        // Create label text
-        this.labelText = new PIXI.Text({
-            text: '',
-            style: {
-                fontFamily: 'Arial',
-                fontSize: 16,
-                fill: '#FFFFFF',
-                fontWeight: 'bold'
+            #powerUpTimer.hidden {
+                display: none;
             }
-        });
-        this.container.addChild(this.labelText);
 
-        // Create description text
-        this.descriptionText = new PIXI.Text({
-            text: '',
-            style: {
-                fontFamily: 'Arial',
-                fontSize: 12,
-                fill: '#FFD700',
-                fontWeight: 'normal'
+            .power-up-timer-container {
+                background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%);
+                border: 2px solid rgba(255, 215, 0, 0.8);
+                border-radius: 12px;
+                padding: 12px 16px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 
+                            0 0 20px rgba(255, 215, 0, 0.3);
+                backdrop-filter: blur(10px);
+                min-width: 280px;
+                max-width: 100%;
+                box-sizing: border-box;
             }
-        });
-        this.container.addChild(this.descriptionText);
 
-        // Create timer text
-        this.timerText = new PIXI.Text({
-            text: '5.0',
-            style: {
-                fontFamily: 'Arial',
-                fontSize: 28,
-                fill: '#4CAF50',
-                fontWeight: 'bold',
-                stroke: { color: '#1B5E20', width: 3 }
+            .power-up-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 8px;
             }
-        });
-        this.container.addChild(this.timerText);
 
-        // Create progress bar background
-        this.progressBarBg = new PIXI.Graphics();
-        this.container.addChild(this.progressBarBg);
+            .power-up-icon {
+                font-size: 36px;
+                line-height: 1;
+                animation: pulse 1.5s ease-in-out infinite;
+                flex-shrink: 0;
+            }
 
-        // Create progress bar fill
-        this.progressBarFill = new PIXI.Graphics();
-        this.container.addChild(this.progressBarFill);
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
 
-        // Animation properties
-        this.pulseScale = 1.0;
-        this.pulseDirection = 1;
+            .power-up-info {
+                flex: 1;
+                min-width: 0;
+                overflow: hidden;
+            }
 
-        this.container.visible = false;
-        this.updateLayout();
+            .power-up-label {
+                font-family: Arial, sans-serif;
+                font-size: 14px;
+                font-weight: bold;
+                color: #FFFFFF;
+                margin-bottom: 2px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .power-up-description {
+                font-family: Arial, sans-serif;
+                font-size: 11px;
+                color: #FFD700;
+                line-height: 1.3;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                max-height: 2.6em;
+            }
+
+            .power-up-time {
+                font-family: Arial, sans-serif;
+                font-size: 24px;
+                font-weight: bold;
+                color: #4CAF50;
+                text-shadow: 0 0 10px rgba(76, 175, 80, 0.5),
+                            0 2px 4px rgba(0, 0, 0, 0.8);
+                flex-shrink: 0;
+                min-width: 60px;
+                text-align: right;
+            }
+
+            .power-up-time.warning {
+                color: #FFA500;
+            }
+
+            .power-up-time.danger {
+                color: #FF6B6B;
+                animation: blink 0.5s ease-in-out infinite;
+            }
+
+            @keyframes blink {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+
+            .power-up-progress-bar {
+                width: 100%;
+                height: 6px;
+                background: rgba(51, 51, 51, 0.5);
+                border-radius: 3px;
+                overflow: hidden;
+            }
+
+            .power-up-progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #4CAF50 0%, #66BB6A 100%);
+                border-radius: 3px;
+                transition: width 0.1s linear, background 0.3s ease;
+                box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            }
+
+            .power-up-progress-fill.warning {
+                background: linear-gradient(90deg, #FFA500 0%, #FFB84D 100%);
+                box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+            }
+
+            .power-up-progress-fill.danger {
+                background: linear-gradient(90deg, #FF6B6B 0%, #FF8787 100%);
+                box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+            }
+
+            /* Responsive adjustments */
+            @media (max-width: 400px) {
+                .power-up-timer-container {
+                    min-width: 240px;
+                    padding: 10px 12px;
+                }
+
+                .power-up-icon {
+                    font-size: 28px;
+                }
+
+                .power-up-label {
+                    font-size: 12px;
+                }
+
+                .power-up-description {
+                    font-size: 10px;
+                }
+
+                .power-up-time {
+                    font-size: 20px;
+                    min-width: 50px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     /**
@@ -97,12 +222,14 @@ export class PowerUpTimer {
         this.powerUpType = powerUpId;
         this.duration = duration;
         this.elapsed = 0;
-        this.container.visible = true;
 
         // Set display from config
-        this.iconText.text = config.icon || '✨';
-        this.labelText.text = i18n.t(config.nameKey);
-        this.descriptionText.text = i18n.t(config.descriptionKey);
+        this.iconElement.textContent = config.icon || '✨';
+        this.labelElement.textContent = i18n.t(config.nameKey);
+        this.descriptionElement.textContent = i18n.t(config.descriptionKey);
+
+        // Show element
+        this.element.classList.remove('hidden');
 
         this.updateDisplay();
     }
@@ -112,7 +239,7 @@ export class PowerUpTimer {
      */
     stop() {
         this.active = false;
-        this.container.visible = false;
+        this.element.classList.add('hidden');
     }
 
     /**
@@ -120,7 +247,7 @@ export class PowerUpTimer {
      * @param {number} delta - Delta time in milliseconds
      */
     update(delta) {
-        if (!this.active) return;
+        if (!this.active) return false;
 
         this.elapsed += delta;
 
@@ -130,7 +257,6 @@ export class PowerUpTimer {
         }
 
         this.updateDisplay();
-        this.animate(delta / 1000); // Convert to seconds for animation
         return true; // Timer still running
     }
 
@@ -141,130 +267,32 @@ export class PowerUpTimer {
         const remaining = Math.max(0, this.duration - this.elapsed);
         const seconds = (remaining / 1000).toFixed(1);
 
-        this.timerText.text = seconds + 's';
+        this.timeElement.textContent = seconds + 's';
 
         // Update color based on remaining time
         const progress = remaining / this.duration;
+        
+        // Remove all state classes
+        this.timeElement.classList.remove('warning', 'danger');
+        this.progressFillElement.classList.remove('warning', 'danger');
+
         if (progress < 0.3) {
-            this.timerText.style.fill = '#FF6B6B'; // Red - Almost over
+            this.timeElement.classList.add('danger');
+            this.progressFillElement.classList.add('danger');
         } else if (progress < 0.6) {
-            this.timerText.style.fill = '#FFA500'; // Orange - Half time
-        } else {
-            this.timerText.style.fill = '#4CAF50'; // Green - Good time
+            this.timeElement.classList.add('warning');
+            this.progressFillElement.classList.add('warning');
         }
 
-        this.drawProgressBar();
-        this.drawBackground();
-    }
-
-    /**
-     * Draw background with glow
-     */
-    drawBackground() {
-        this.background.clear();
-
-        const width = 200;
-        const height = 110;
-        const x = 0;
-        const y = 0;
-
-        // Outer glow
-        this.background.roundRect(x - 2, y - 2, width + 4, height + 4, 12);
-        this.background.fill({ color: 0xFFD700, alpha: 0.3 });
-
-        // Main background
-        this.background.roundRect(x, y, width, height, 10);
-        this.background.fill({ color: 0x000000, alpha: 0.8 });
-
-        // Border
-        this.background.roundRect(x, y, width, height, 10);
-        this.background.stroke({ color: 0xFFD700, width: 2, alpha: 0.9 });
-    }
-
-    /**
-     * Draw progress bar
-     */
-    drawProgressBar() {
-        const barWidth = 170;
-        const barHeight = 8;
-        const barX = 15;
-        const barY = 90;
-
-        const progress = 1 - (this.elapsed / this.duration);
-
-        // Background
-        this.progressBarBg.clear();
-        this.progressBarBg.roundRect(barX, barY, barWidth, barHeight, 4);
-        this.progressBarBg.fill({ color: 0x333333, alpha: 0.5 });
-
-        // Fill
-        this.progressBarFill.clear();
-        const fillWidth = barWidth * progress;
-
-        if (fillWidth > 0) {
-            this.progressBarFill.roundRect(barX, barY, fillWidth, barHeight, 4);
-
-            // Color based on progress
-            let color = 0x4CAF50; // Green
-            if (progress < 0.3) color = 0xFF6B6B; // Red
-            else if (progress < 0.6) color = 0xFFA500; // Orange
-
-            this.progressBarFill.fill({ color: color, alpha: 0.9 });
-        }
-    }
-
-    /**
-     * Animate the display
-     * @param {number} delta - Delta time in milliseconds
-     */
-    animate(delta) {
-        // Pulse animation (normalized to 60fps)
-        const normalizedDelta = delta / 16.67; // Normalize to 60fps frame time
-        this.pulseScale += 0.02 * this.pulseDirection * normalizedDelta;
-
-        if (this.pulseScale > 1.1) {
-            this.pulseScale = 1.1;
-            this.pulseDirection = -1;
-        } else if (this.pulseScale < 1.0) {
-            this.pulseScale = 1.0;
-            this.pulseDirection = 1;
-        }
-
-        this.iconText.scale.set(this.pulseScale);
-    }
-
-    /**
-     * Update layout positions
-     */
-    updateLayout() {
-        const screenWidth = GAME_CONFIG.width;
-
-        // Position in top-center
-        this.container.x = (screenWidth / 2) - 100; // Center horizontally
-        this.container.y = 20;
-
-        // Icon position
-        this.iconText.x = 15;
-        this.iconText.y = 8;
-
-        // Label position
-        this.labelText.x = 55;
-        this.labelText.y = 12;
-
-        // Description position
-        this.descriptionText.x = 55;
-        this.descriptionText.y = 32;
-
-        // Timer position
-        this.timerText.x = 55;
-        this.timerText.y = 52;
+        // Update progress bar
+        this.progressFillElement.style.width = (progress * 100) + '%';
     }
 
     /**
      * Update position (for responsive layout)
      */
     updatePosition() {
-        this.updateLayout();
+        // Position is handled by CSS, but this method is kept for compatibility
     }
 
     /**
@@ -284,32 +312,41 @@ export class PowerUpTimer {
     }
 
     /**
-     * Add to stage
-     * @param {PIXI.Container} stage
+     * Add to stage (attach to DOM)
+     * @param {PIXI.Container} stage - Not used, kept for compatibility
      */
     addToStage(stage) {
-        stage.addChild(this.container);
+        // Attach to DOM instead of PIXI stage
+        if (!this.element.parentElement) {
+            document.body.appendChild(this.element);
+        }
     }
 
     /**
-     * Remove from stage
-     * @param {PIXI.Container} stage
+     * Remove from stage (detach from DOM)
+     * @param {PIXI.Container} stage - Not used, kept for compatibility
      */
     removeFromStage(stage) {
-        stage.removeChild(this.container);
+        this.stop();
+        if (this.element && this.element.parentElement) {
+            this.element.parentElement.removeChild(this.element);
+        }
     }
 
     /**
      * Clean up and destroy
      */
     destroy() {
-        this.iconText.destroy();
-        this.labelText.destroy();
-        this.descriptionText.destroy();
-        this.timerText.destroy();
-        this.progressBarBg.destroy();
-        this.progressBarFill.destroy();
-        this.background.destroy();
-        this.container.destroy({ children: true });
+        this.stop();
+        if (this.element && this.element.parentElement) {
+            this.element.parentElement.removeChild(this.element);
+        }
+        // Clear element references
+        this.iconElement = null;
+        this.labelElement = null;
+        this.descriptionElement = null;
+        this.timeElement = null;
+        this.progressFillElement = null;
+        this.element = null;
     }
 }

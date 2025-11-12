@@ -73,10 +73,8 @@ export const GAME_CONFIG = {
  * WebSocket Configuration
  */
 export const WS_CONFIG = {
-    // Use secure WebSocket (wss://) for production
-    url: window.location.hostname === 'localhost' 
-        ? 'ws://localhost:8080'
-        : 'wss://server.pax.lt:8080'
+    // Always use production server
+    url: 'wss://server.pax.lt:8080'
 };
 
 /**
@@ -94,7 +92,7 @@ export function updateGameDimensions() {
 }
 
 export const PLAYER_CONFIG = {
-    scale: 0.8,
+    scale: 1,  // Much smaller basket for better gameplay
     yOffset: 80,
     minX: 40,
     maxXOffset: 40

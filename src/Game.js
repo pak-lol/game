@@ -28,9 +28,16 @@ import { OptionsModal } from './ui/modals/OptionsModal.js';
 import { ContestInfoModal } from './ui/modals/ContestInfoModal.js';
 import { LeaderboardModal } from './ui/modals/LeaderboardModal.js';
 import { GameOverModal } from './ui/modals/GameOverModal.js';
+import { ItemPool } from './pools/ItemPool.js';
+import { eventBus } from './core/EventBus.js';
+import { GameEvents } from './core/GameEvents.js';
+import { SceneManager } from './managers/SceneManager.js';
+import { GameScene } from './scenes/GameScene.js';
 
 /**
  * Main Game class - orchestrates all game systems
+ * Now uses EventBus for decoupled communication
+ * Transitioning to Scene-based architecture
  */
 export class Game {
     constructor() {
@@ -51,6 +58,13 @@ export class Game {
         this.powerUpManager = null; // Initialized in init()
         this.entityManager = null;  // Initialized in init()
         this.difficultyManager = new DifficultyManager();
+
+        // Object pools for performance
+        this.itemPool = null;  // Initialized in init()
+
+        // NEW: Scene management
+        this.sceneManager = null;  // Initialized in init()
+        this.useSceneSystem = false;  // Toggle for gradual migration
 
         // Game entities
         this.player = null;
@@ -138,9 +152,16 @@ export class Game {
             this.uiManager.setStage(this.app.stage);
             this.uiManager.setScoreService(this.scoreService);
 
-            // Initialize new managers
+            // Initialize object pools
+            this.itemPool = new ItemPool(30, 100);  // 30 initial, 100 max
+            console.log('[Game] Object pools initialized');
+
+            // Initialize new managers (pass itemPool to EntityManager)
             this.powerUpManager = new PowerUpEffectManager(this);
-            this.entityManager = new EntityManager(this);
+            this.entityManager = new EntityManager(this, this.itemPool);
+
+            // Initialize Scene System
+            this.initializeSceneSystem();
 
             // Create connection status indicator
             this.connectionStatus = new ConnectionStatus();
@@ -193,6 +214,35 @@ export class Game {
             console.error('Failed to initialize game:', error);
             throw error;
         }
+    }
+
+    /**
+     * Initialize Scene System (new architecture)
+     */
+    initializeSceneSystem() {
+        // Create services object to pass to scenes
+        const services = {
+            entityManager: this.entityManager,
+            powerUpManager: this.powerUpManager,
+            difficultyManager: this.difficultyManager,
+            particleSystem: this.particleSystem,
+            assetLoader: this.assetLoader,
+            itemPool: this.itemPool,
+            stateManager: this.stateManager,
+            audioManager: this.audioManager,
+            telegramService: this.telegramService,
+            scoreService: this.scoreService,
+            uiManager: this.uiManager
+        };
+
+        // Create SceneManager
+        this.sceneManager = new SceneManager(this.app, services);
+
+        // Create and register GameScene
+        const gameScene = new GameScene();
+        this.sceneManager.register('game', gameScene);
+
+        console.log('[Game] Scene system initialized');
     }
 
     handleStartClick() {
@@ -388,6 +438,12 @@ export class Game {
         this.app.ticker.add(this.gameLoopBound);
 
         console.log('Game started for player:', this.username);
+
+        // Emit game started event
+        eventBus.emit(GameEvents.GAME_STARTED, {
+            username: this.username,
+            timestamp: Date.now()
+        });
     }
 
     createBackground() {
@@ -591,6 +647,16 @@ export class Game {
                 this.telegramService.hapticFeedback(config.haptic);
             }
 
+            // Emit item caught event
+            eventBus.emit(GameEvents.ITEM_CAUGHT, {
+                item,
+                config,
+                position,
+                score: multipliedScore,
+                baseScore: scoreValue,
+                multiplier: this.currentScoreMultiplier
+            });
+
             // Increase difficulty
             this.increaseDifficulty();
         }
@@ -633,6 +699,14 @@ export class Game {
             this.telegramService.hapticFeedback(config.haptic);
         }
 
+        // Emit powerup activated event
+        eventBus.emit(GameEvents.POWERUP_ACTIVATED, {
+            config,
+            position,
+            duration: config.duration,
+            effectType: config.effectType
+        });
+
         // Use PowerUpEffectManager to handle all effects
         this.powerUpManager.applyEffect(config);
     }
@@ -669,9 +743,26 @@ export class Game {
         // Set state
         this.stateManager.setState(GameState.GAME_OVER);
 
+        // Emit game over event
+        eventBus.emit(GameEvents.GAME_OVER, {
+            score: this.scoreDisplay.score,
+            username: this.username,
+            timestamp: Date.now()
+        });
+
         // Remove game loop ticker
         if (this.gameLoopBound) {
             this.app.ticker.remove(this.gameLoopBound);
+        }
+
+        // Clear all active power-up effects
+        if (this.powerUpManager) {
+            this.powerUpManager.clearAll();
+        }
+
+        // Stop power-up timer immediately
+        if (this.powerUpTimer) {
+            this.powerUpTimer.stop();
         }
 
         // Stop all falling items
@@ -740,6 +831,11 @@ export class Game {
     restart() {
         console.log('Restarting game...');
 
+        // Emit restart event
+        eventBus.emit(GameEvents.GAME_RESTARTED, {
+            timestamp: Date.now()
+        });
+
         // Clean up current game state
         this.cleanup();
 
@@ -766,6 +862,13 @@ export class Game {
         // Clear score popups
         this.clearScorePopups();
 
+        // Destroy powerUpTimer HTML element
+        if (this.powerUpTimer) {
+            this.powerUpTimer.stop();
+            this.powerUpTimer.removeFromStage();
+            this.powerUpTimer = null;
+        }
+
         // Clear stage
         if (this.app && this.app.stage) {
             this.app.stage.removeChildren();
@@ -779,7 +882,6 @@ export class Game {
         this.player = null;
         this.scoreDisplay = null;
         this.speedDisplay = null;
-        this.powerUpTimer = null;
         // Don't destroy connectionStatus - it persists across games
     }
 
