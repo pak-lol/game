@@ -22,6 +22,7 @@ import { i18n } from './utils/i18n.js';
 import { GameStateManager, GameState } from './managers/GameStateManager.js';
 import { ScoreService } from './services/ScoreService.js';
 import { UIManager } from './managers/UIManager.js';
+import { AudioManager } from './services/AudioManager.js';
 import { OptionsModal } from './ui/modals/OptionsModal.js';
 import { ContestInfoModal } from './ui/modals/ContestInfoModal.js';
 import { LeaderboardModal } from './ui/modals/LeaderboardModal.js';
@@ -42,6 +43,7 @@ export class Game {
         this.stateManager = new GameStateManager();
         this.scoreService = new ScoreService();
         this.uiManager = new UIManager();
+        this.audioManager = new AudioManager();
         this.telegramService = null;
 
         // Game entities
@@ -109,6 +111,9 @@ export class Game {
 
             // Load assets
             await this.assetLoader.loadAll();
+
+            // Load background music
+            await this.audioManager.loadBackgroundMusic('/assets/background_music.mp3');
 
             // Initialize systems
             this.particleSystem = new ParticleSystem(this.app);
@@ -189,7 +194,7 @@ export class Game {
      * Show options modal
      */
     showOptions() {
-        const optionsModal = new OptionsModal();
+        const optionsModal = new OptionsModal(this.audioManager);
         optionsModal.show(() => {
             // Modal closed callback
         });
@@ -286,6 +291,9 @@ export class Game {
 
         // Set state to playing
         this.stateManager.setState(GameState.PLAYING);
+
+        // Play background music if enabled
+        this.audioManager.playBackgroundMusic();
 
         // Create game entities
         this.createBackground();
@@ -803,6 +811,10 @@ export class Game {
 
         if (this.uiManager) {
             this.uiManager.destroy();
+        }
+
+        if (this.audioManager) {
+            this.audioManager.destroy();
         }
 
         // Destroy particle system

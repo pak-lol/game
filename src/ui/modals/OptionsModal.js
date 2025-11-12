@@ -5,7 +5,8 @@ import { i18n } from '../../utils/i18n.js';
  * Options Modal - HTML-based settings UI
  */
 export class OptionsModal {
-    constructor() {
+    constructor(audioManager = null) {
+        this.audioManager = audioManager;
         this.settings = this.loadSettings();
     }
 
@@ -97,12 +98,6 @@ export class OptionsModal {
                     </div>
                 </div>
 
-                <!-- Coming Soon -->
-                <div class="bg-black/40 border border-emerald-500/20 rounded-xl p-6 text-center">
-                    <div class="text-4xl mb-2">🚧</div>
-                    <div class="text-gray-400 text-sm italic">${i18n.t('options.comingSoon')}</div>
-                </div>
-
                 <!-- Back Button -->
                 <button id="optionsBackBtn" 
                         class="w-full px-6 py-3 rounded-xl font-bold text-base
@@ -140,6 +135,11 @@ export class OptionsModal {
             musicToggle.addEventListener('change', (e) => {
                 this.settings.musicEnabled = e.target.checked;
                 this.saveSettings();
+
+                // Control background music in real-time
+                if (this.audioManager) {
+                    this.audioManager.toggleBackgroundMusic(e.target.checked);
+                }
             });
         }
 

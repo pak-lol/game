@@ -30,14 +30,15 @@ export class ContestInfoModal {
                         <span>Apie Konkursą</span>
                     </h3>
                     <p class="text-gray-300 text-sm leading-relaxed mb-3">
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor 
-                        incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud 
-                        exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                        Sveiki atvykę į savaitinį "Žolės Gaudytojas" konkursą! 🎯
+                    </p>
+                    <p class="text-gray-300 text-sm leading-relaxed mb-3">
+                        Varžykitės su kitais žaidėjais ir surinkite kuo daugiau taškų. Žaidėjas su
+                        didžiausiu rezultatu savaitės pabaigoje laimės prizą!
                     </p>
                     <p class="text-gray-300 text-sm leading-relaxed">
-                        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu 
-                        fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in 
-                        culpa qui officia deserunt mollit anim id est laborum.
+                        Gaudykite "vorinio dumai" ir "vorinio sniegas", vengkite "chimke", naudokite
+                        kibiro galią lėtėjimui. Kiekvienas taškas priartina jus prie pergalės! 🏆
                     </p>
                 </div>
 
@@ -50,20 +51,27 @@ export class ContestInfoModal {
                         <span>🎁</span>
                         <span>Prizai</span>
                     </h3>
-                    <ul class="space-y-2 text-gray-300 text-sm">
-                        <li class="flex items-start gap-2">
-                            <span class="text-yellow-400 font-bold">🥇</span>
-                            <span>1 vieta - Lorem ipsum dolor sit amet</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <span class="text-gray-400 font-bold">🥈</span>
-                            <span>2 vieta - Consectetur adipiscing elit</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <span class="text-orange-400 font-bold">🥉</span>
-                            <span>3 vieta - Sed do eiusmod tempor</span>
-                        </li>
-                    </ul>
+                    <div class="bg-gradient-to-r from-yellow-900/30 to-yellow-800/20
+                                border-2 border-yellow-600/50 rounded-lg p-4 mb-3
+                                shadow-lg shadow-yellow-500/10">
+                        <div class="flex items-start gap-3">
+                            <span class="text-3xl">🥇</span>
+                            <div>
+                                <div class="text-yellow-400 font-bold text-base mb-1">
+                                    1 vieta - Nugalėtojas
+                                </div>
+                                <div class="text-gray-200 text-lg font-bold">
+                                    2g Lemon Haze 🌿
+                                </div>
+                                <div class="text-gray-400 text-xs mt-1">
+                                    Prizas bus įteiktas sekmadienį
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-400 text-xs text-center italic">
+                        Žaidėjas su didžiausiu rezultatu savaitės pabaigoje laimi prizą! 🎁
+                    </p>
                 </div>
 
                 <!-- Rules Section -->
@@ -76,10 +84,11 @@ export class ContestInfoModal {
                         <span>Taisyklės</span>
                     </h3>
                     <ul class="space-y-2 text-gray-300 text-sm list-disc list-inside">
-                        <li>Lorem ipsum dolor sit amet consectetur</li>
-                        <li>Adipiscing elit sed do eiusmod tempor</li>
-                        <li>Incididunt ut labore et dolore magna</li>
-                        <li>Aliqua ut enim ad minim veniam</li>
+                        <li>Konkurse gali dalyvauti visi žaidėjai</li>
+                        <li>Laimėtojas - žaidėjas su didžiausiu rezultatu savaitės pabaigoje</li>
+                        <li>Galite žaisti tiek kartų, kiek norite - skaičiuojamas geriausias rezultatas</li>
+                        <li>Rezultatai atsinaujina realiuoju laiku lyderių lentelėje</li>
+                        <li>Prizas bus įteiktas sekmadienį nugalėtojui</li>
                     </ul>
                 </div>
 
@@ -92,14 +101,20 @@ export class ContestInfoModal {
                         <span>📅</span>
                         <span>Datos</span>
                     </h3>
-                    <div class="space-y-2 text-gray-300 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Pradžia:</span>
-                            <span class="font-bold">2024-01-01</span>
+                    <div class="space-y-3 text-gray-300 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">Konkurso pradžia:</span>
+                            <span class="font-bold text-emerald-400">2025-11-12 (antradienis)</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-400">Pabaiga:</span>
-                            <span class="font-bold">2024-12-31</span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">Konkurso pabaiga:</span>
+                            <span class="font-bold text-yellow-400">2025-11-16 (sekmadienis)</span>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-emerald-800/40">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Prizų įteikimas:</span>
+                                <span class="font-bold text-yellow-400">Sekmadienį 🎁</span>
+                            </div>
                         </div>
                     </div>
                 </div>
