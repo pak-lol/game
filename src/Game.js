@@ -551,14 +551,26 @@ export class Game {
      * @param {Object} config - Power-up configuration
      */
     applySpeedMultiplierEffect(config) {
-        // Store current speed
+        // If power-up already active, just restart the timer (don't change speeds)
+        if (this.powerUpActive) {
+            console.log(`Power-up already active! Restarting timer for ${config.duration}ms`);
+
+            // Restart timer UI
+            if (this.powerUpTimer) {
+                this.powerUpTimer.start(config.id, config.duration);
+            }
+
+            return; // Don't change speeds or save state again
+        }
+
+        // First time activating power-up - store original speed before slowing down
         this.powerUpActive = true;
         this.originalSpeedMultiplier = this.currentSpeedMultiplier;
 
-        // Apply effect
+        // Apply slow-down effect
         this.currentSpeedMultiplier = Math.max(1.0, this.currentSpeedMultiplier * config.effectValue);
 
-        // Update all falling items with new speed
+        // Update all falling items with new slowed speed
         this.updateFallingItemsSpeeds();
 
         // Update speed display
@@ -578,7 +590,7 @@ export class Game {
      * Restore speed after power-up expires
      */
     restoreSpeed() {
-        console.log('Power-up expired! Restoring speed...');
+        console.log(`Power-up expired! Restoring speed from ${this.currentSpeedMultiplier.toFixed(2)}x to ${this.originalSpeedMultiplier.toFixed(2)}x`);
 
         this.powerUpActive = false;
         this.currentSpeedMultiplier = this.originalSpeedMultiplier;
