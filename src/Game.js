@@ -657,8 +657,8 @@ export class Game {
         this.powerUpActive = true;
         this.originalSpeedMultiplier = this.currentSpeedMultiplier;
 
-        // Apply slow-down effect
-        this.currentSpeedMultiplier = Math.max(1.0, this.currentSpeedMultiplier * config.effectValue);
+        // Apply slow-down effect (multiply current speed by effectValue, e.g., 0.5 = half speed)
+        this.currentSpeedMultiplier = this.currentSpeedMultiplier * config.effectValue;
 
         // Update all falling items with new slowed speed
         this.updateFallingItemsSpeeds();
