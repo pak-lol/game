@@ -1,0 +1,51 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shadow -->
+  <ellipse cx="100" cy="180" rx="60" ry="8" fill="#000000" opacity="0.2"/>
+
+  <!-- Main pill shape -->
+  <g>
+    <!-- Left half (darker) -->
+    <path d="M 60 100 Q 60 50 100 50 L 100 150 Q 60 150 60 100 Z" fill="#FF1744" filter="url(#shadow)"/>
+
+    <!-- Right half (lighter) -->
+    <path d="M 100 50 Q 140 50 140 100 Q 140 150 100 150 Z" fill="#FF5252" filter="url(#shadow)"/>
+
+    <!-- Center line -->
+    <rect x="98" y="50" width="4" height="100" fill="#C62828" opacity="0.5"/>
+
+    <!-- Shine effect left -->
+    <ellipse cx="80" cy="70" rx="15" ry="25" fill="white" opacity="0.4"/>
+
+    <!-- Shine effect right -->
+    <ellipse cx="120" cy="75" rx="12" ry="20" fill="white" opacity="0.3"/>
+
+    <!-- Pills dots pattern on left -->
+    <circle cx="75" cy="100" r="3" fill="#C62828" opacity="0.6"/>
+    <circle cx="85" cy="110" r="3" fill="#C62828" opacity="0.6"/>
+    <circle cx="75" cy="120" r="3" fill="#C62828" opacity="0.6"/>
+
+    <!-- Cross symbol on right half -->
+    <g transform="translate(115, 100)">
+      <rect x="-2" y="-12" width="4" height="24" fill="white" opacity="0.9"/>
+      <rect x="-12" y="-2" width="24" height="4" fill="white" opacity="0.9"/>
+    </g>
+  </g>
+
+  <!-- Outer glow -->
+  <ellipse cx="100" cy="100" rx="75" ry="55" fill="none" stroke="#FF1744" stroke-width="2" opacity="0.3"/>
+
+  <!-- Shadow filter -->
+  <defs>
+    <filter id="shadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="2" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>

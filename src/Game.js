@@ -61,6 +61,7 @@ export class Game {
         this.username = '';
         this.powerUpActive = false;
         this.scoreMultiplierActive = false;
+        this.chimkeBlockActive = false; // Track if chimke blocking is active
 
         // Background reference
         this.background = null;
@@ -374,6 +375,22 @@ export class Game {
         } else {
             // Spawn regular item based on rarity weights
             itemConfig = configManager.getRandomItem();
+
+            // If chimke block is active and we rolled a game-over item (chimke),
+            // keep re-rolling until we get a non-game-over item
+            let attempts = 0;
+            while (this.chimkeBlockActive && itemConfig.gameOver && attempts < 10) {
+                itemConfig = configManager.getRandomItem();
+                attempts++;
+            }
+
+            // If we still got a game-over item after 10 attempts (unlikely),
+            // just don't spawn anything this cycle
+            if (this.chimkeBlockActive && itemConfig.gameOver) {
+                console.log('Chimke block active - skipping chimke spawn');
+                return;
+            }
+
             texture = this.assetLoader.getTexture(itemConfig.texture);
         }
 
@@ -409,6 +426,9 @@ export class Game {
                 }
                 if (this.scoreMultiplierActive) {
                     this.restoreScoreMultiplier();
+                }
+                if (this.chimkeBlockActive) {
+                    this.restoreChimkeSpawning();
                 }
             }
         }
@@ -552,6 +572,9 @@ export class Game {
         else if (config.effectType === 'score_multiplier') {
             this.applyScoreMultiplierEffect(config);
         }
+        else if (config.effectType === 'clear_chimke') {
+            this.applyChimkeBlockEffect(config);
+        }
         // Add more effect types here in the future
         // else if (config.effectType === 'invincibility') { ... }
     }
@@ -655,6 +678,71 @@ export class Game {
         this.currentScoreMultiplier = 1.0;
 
         console.log(`Score multiplier restored to ${this.currentScoreMultiplier.toFixed(1)}x`);
+    }
+
+    /**
+     * Apply chimke block power-up effect (tablet)
+     * @param {Object} config - Power-up configuration
+     */
+    applyChimkeBlockEffect(config) {
+        // If chimke block already active, just restart the timer
+        if (this.chimkeBlockActive) {
+            console.log(`Chimke block already active! Restarting timer for ${config.duration}ms`);
+
+            // Restart timer UI
+            if (this.powerUpTimer) {
+                this.powerUpTimer.start(config.id, config.duration);
+            }
+
+            return; // Don't clear chimke again, just restart timer
+        }
+
+        // First time activating chimke block
+        this.chimkeBlockActive = true;
+
+        // Clear all existing chimke items from the screen
+        this.clearAllChimke();
+
+        // Start timer
+        if (this.powerUpTimer) {
+            this.powerUpTimer.start(config.id, config.duration);
+        }
+
+        console.log(`Chimke block active! No chimke will spawn for ${config.duration}ms`);
+    }
+
+    /**
+     * Clear all chimke items from the screen
+     */
+    clearAllChimke() {
+        let clearedCount = 0;
+
+        // Remove all chimke items from falling items array
+        for (let i = this.fallingItems.length - 1; i >= 0; i--) {
+            const item = this.fallingItems[i];
+            if (item && item.isGameOver()) { // chimke items are game-over items
+                // Create particle effect when removing
+                const position = item.getPosition();
+                const config = item.getConfig();
+                this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+
+                // Remove from stage and array
+                item.removeFromStage(this.app.stage);
+                this.fallingItems.splice(i, 1);
+                clearedCount++;
+            }
+        }
+
+        console.log(`Cleared ${clearedCount} chimke items from the screen!`);
+    }
+
+    /**
+     * Restore chimke spawning after power-up expires
+     */
+    restoreChimkeSpawning() {
+        console.log(`Chimke block expired! Chimke can spawn again`);
+
+        this.chimkeBlockActive = false;
     }
 
     /**
@@ -841,6 +929,7 @@ export class Game {
         // Reset power-up state
         this.powerUpActive = false;
         this.scoreMultiplierActive = false;
+        this.chimkeBlockActive = false;
         this.originalSpeedMultiplier = 1.0;
     }
 

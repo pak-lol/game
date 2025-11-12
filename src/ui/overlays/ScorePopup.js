@@ -18,9 +18,9 @@ export class ScorePopup {
         this.container.y = y;
 
         this.lifetime = 0;
-        this.maxLifetime = 120; // Frames (about 2 seconds at 60fps)
+        this.maxLifetime = 70; // Frames (about 1.2 seconds at 60fps) - faster for mobile
         this.active = true;
-        this.velocityY = -2; // Move upward
+        this.velocityY = -2.5; // Move upward slightly faster
 
         // Create score text with beautiful styling
         const scoreText = `+${scoreValue}`;
@@ -29,15 +29,15 @@ export class ScorePopup {
             text: scoreText,
             style: {
                 fontFamily: 'Arial',
-                fontSize: 48,
+                fontSize: 36, // Smaller for mobile visibility
                 fill: color,
                 fontWeight: 'bold',
-                stroke: { color: '#000000', width: 6 },
+                stroke: { color: '#000000', width: 4 }, // Thinner stroke
                 dropShadow: {
                     color: '#000000',
-                    blur: 8,
+                    blur: 6,
                     angle: Math.PI / 4,
-                    distance: 4
+                    distance: 3
                 },
                 align: 'center'
             }
@@ -57,15 +57,15 @@ export class ScorePopup {
                 text: itemName.toUpperCase(),
                 style: {
                     fontFamily: 'Arial',
-                    fontSize: 16,
+                    fontSize: 13, // Smaller for mobile
                     fill: '#FFFFFF',
                     fontWeight: 'bold',
-                    stroke: { color: '#000000', width: 3 },
+                    stroke: { color: '#000000', width: 2 }, // Thinner stroke
                     align: 'center'
                 }
             });
             this.itemText.anchor.set(0.5, 0.5);
-            this.itemText.y = 35;
+            this.itemText.y = 28; // Adjusted spacing
             this.container.addChild(this.itemText);
         }
 
@@ -84,16 +84,16 @@ export class ScorePopup {
         // Convert hex to number
         const colorNum = parseInt(color.replace('#', ''), 16);
 
-        // Outer glow
-        this.glowCircle.circle(0, 0, 40);
+        // Outer glow - smaller for mobile
+        this.glowCircle.circle(0, 0, 30);
         this.glowCircle.fill({ color: colorNum, alpha: 0.3 });
 
         // Middle glow
-        this.glowCircle.circle(0, 0, 25);
+        this.glowCircle.circle(0, 0, 18);
         this.glowCircle.fill({ color: colorNum, alpha: 0.2 });
 
         // Inner glow
-        this.glowCircle.circle(0, 0, 15);
+        this.glowCircle.circle(0, 0, 10);
         this.glowCircle.fill({ color: colorNum, alpha: 0.1 });
     }
 
@@ -120,10 +120,10 @@ export class ScorePopup {
         // Slow down over time
         this.velocityY *= 0.98;
 
-        // Fade out in last 30 frames
-        const fadeStartFrame = this.maxLifetime - 30;
+        // Fade out in last 20 frames - faster fade for mobile
+        const fadeStartFrame = this.maxLifetime - 20;
         if (this.lifetime > fadeStartFrame) {
-            const fadeProgress = (this.lifetime - fadeStartFrame) / 30;
+            const fadeProgress = (this.lifetime - fadeStartFrame) / 20;
             this.container.alpha = 1 - fadeProgress;
         }
 

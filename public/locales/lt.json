@@ -52,6 +52,8 @@
     "bucketCaught": "Kibiras pagautas!",
     "bucketDescription": "Sumažina žaidimo greitį 2x!",
     "mushroom": "Vorinio Grybai",
-    "mushroomDescription": "Dvigubi taškai 8 sekundėms! 2x"
+    "mushroomDescription": "Dvigubi taškai 8 sekundėms! 2x",
+    "tablet": "Tabletė",
+    "tabletDescription": "Pašalina visus chimke 5 sekundėms!"
   }
 }
