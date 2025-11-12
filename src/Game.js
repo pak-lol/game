@@ -14,11 +14,13 @@ import { ScoreDisplay } from './ui/overlays/ScoreDisplay.js';
 import { SpeedDisplay } from './ui/overlays/SpeedDisplay.js';
 import { PowerUpTimer } from './ui/overlays/PowerUpTimer.js';
 import { ScorePopup } from './ui/overlays/ScorePopup.js';
+import { ConnectionStatus } from './ui/overlays/ConnectionStatus.js';
 import { i18n } from './utils/i18n.js';
 import { GameStateManager, GameState } from './managers/GameStateManager.js';
 import { ScoreService } from './services/ScoreService.js';
 import { UIManager } from './managers/UIManager.js';
 import { AudioManager } from './services/AudioManager.js';
+import { wsService } from './services/WebSocketService.js';
 import { OptionsModal } from './ui/modals/OptionsModal.js';
 import { ContestInfoModal } from './ui/modals/ContestInfoModal.js';
 import { LeaderboardModal } from './ui/modals/LeaderboardModal.js';
@@ -47,6 +49,7 @@ export class Game {
         this.scoreDisplay = null;
         this.speedDisplay = null;
         this.powerUpTimer = null;
+        this.connectionStatus = null;
         this.fallingItems = [];
         this.scorePopups = []; // Array of active score popups
 
@@ -114,13 +117,38 @@ export class Game {
             // Load assets dynamically from configuration
             await this.assetLoader.loadAll(configManager);
 
-            // Load background music
-            await this.audioManager.loadBackgroundMusic('/assets/background_music.mp3');
+            // Load background music (scans /public/music/ folder automatically)
+            await this.audioManager.loadBackgroundMusic();
 
             // Initialize systems
             this.particleSystem = new ParticleSystem(this.app);
             this.uiManager.setStage(this.app.stage);
             this.uiManager.setScoreService(this.scoreService);
+
+            // Create connection status indicator
+            this.connectionStatus = new ConnectionStatus();
+            this.connectionStatus.addToStage(this.app.stage);
+
+            // Setup WebSocket connection state listener
+            wsService.onConnectionStateChange((connected) => {
+                console.log('[Game] WebSocket connection state changed:', connected);
+                if (this.connectionStatus) {
+                    const status = wsService.getConnectionStatus();
+                    this.connectionStatus.setStatus(
+                        status.connected,
+                        status.reconnecting,
+                        status.reconnectAttempts
+                    );
+                }
+            });
+
+            // Set initial connection status
+            const initialStatus = wsService.getConnectionStatus();
+            this.connectionStatus.setStatus(
+                initialStatus.connected,
+                initialStatus.reconnecting,
+                initialStatus.reconnectAttempts
+            );
 
             // Setup resize handler
             this.setupResizeHandler();
@@ -165,9 +193,38 @@ export class Game {
             return;
         }
 
+        // Check WebSocket connection
+        if (!wsService.isConnected()) {
+            this.showConnectionError();
+            return;
+        }
+
         this.username = username;
         console.log('Starting game for player:', this.username);
         this.start();
+    }
+
+    /**
+     * Show connection error message
+     */
+    showConnectionError() {
+        const startButton = document.getElementById('startButton');
+        const originalHTML = startButton.innerHTML;
+
+        startButton.style.background = 'linear-gradient(135deg, #FF6B6B 0%, #C92A2A 100%)';
+        startButton.innerHTML = '<span>⚠️</span><span>Nėra ryšio su serveriu</span>';
+
+        // Try to reconnect
+        if (!wsService.isConnected() && !wsService.getConnectionStatus().reconnecting) {
+            wsService.attemptReconnect();
+        }
+
+        setTimeout(() => {
+            if (wsService.isConnected()) {
+                startButton.style.background = '';
+                startButton.innerHTML = originalHTML;
+            }
+        }, 3000);
     }
 
 
@@ -905,6 +962,7 @@ export class Game {
         this.scoreDisplay = null;
         this.speedDisplay = null;
         this.powerUpTimer = null;
+        // Don't destroy connectionStatus - it persists across games
     }
 
     /**

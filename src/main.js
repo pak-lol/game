@@ -6,13 +6,23 @@ import { wsService } from './services/WebSocketService.js';
 const telegramService = new TelegramService();
 telegramService.init();
 
-// Connect to WebSocket server
-wsService.connect().catch(err => {
-    console.warn('WebSocket connection failed, will use localStorage fallback:', err);
-});
-
 // Create game instance
 const game = new Game();
+
+// Connect to WebSocket server with retry
+async function connectWebSocket() {
+    try {
+        console.log('[Main] Connecting to WebSocket server...');
+        await wsService.connect();
+        console.log('[Main] WebSocket connected successfully');
+    } catch (err) {
+        console.warn('[Main] Initial WebSocket connection failed:', err.message);
+        console.log('[Main] Will auto-reconnect in background');
+    }
+}
+
+// Start WebSocket connection (non-blocking)
+connectWebSocket();
 
 // Pre-fill username from Telegram if available
 function prefillUsername() {
