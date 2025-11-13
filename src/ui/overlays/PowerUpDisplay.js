@@ -26,187 +26,106 @@ export class PowerUpDisplay {
         style.textContent = `
             .power-up-display-container {
                 position: absolute;
-                top: 80px;
+                top: 10px;
                 right: 10px;
                 z-index: 100;
                 pointer-events: none;
                 display: flex;
-                flex-direction: column;
-                gap: 8px;
-                max-width: 320px;
+                flex-direction: row;
+                gap: 6px;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                max-width: 200px;
             }
 
             .power-up-card {
                 background: linear-gradient(135deg,
-                    rgba(0, 0, 0, 0.95) 0%,
-                    rgba(30, 30, 30, 0.95) 100%);
+                    rgba(0, 0, 0, 0.9) 0%,
+                    rgba(20, 20, 20, 0.9) 100%);
                 border: 2px solid;
-                border-radius: 16px;
-                padding: 12px;
+                border-radius: 10px;
+                padding: 6px 8px;
                 box-shadow:
-                    0 8px 24px rgba(0, 0, 0, 0.6),
-                    0 0 20px var(--glow-color);
-                backdrop-filter: blur(10px);
+                    0 2px 8px rgba(0, 0, 0, 0.5),
+                    0 0 12px var(--glow-color);
+                backdrop-filter: blur(8px);
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                gap: 12px;
-                min-width: 200px;
-                max-width: 300px;
-                animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                gap: 3px;
+                animation: slideIn 0.25s ease-out;
                 position: relative;
-                overflow: hidden;
+                min-width: 50px;
             }
 
             @keyframes slideIn {
                 from {
                     opacity: 0;
-                    transform: translateX(100%);
+                    transform: scale(0.5);
                 }
                 to {
                     opacity: 1;
-                    transform: translateX(0);
+                    transform: scale(1);
                 }
             }
 
             .power-up-card.removing {
-                animation: slideOut 0.3s ease-out forwards;
+                animation: slideOut 0.2s ease-out forwards;
             }
 
             @keyframes slideOut {
                 to {
                     opacity: 0;
-                    transform: translateX(100%) scale(0.8);
+                    transform: scale(0.5);
                 }
             }
 
-            .power-up-card::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(90deg,
-                    transparent 0%,
-                    var(--glow-color) 50%,
-                    transparent 100%);
-                opacity: 0.1;
-                animation: shimmer 3s infinite;
-            }
-
-            @keyframes shimmer {
-                0% { transform: translateX(-100%); }
-                100% { transform: translateX(100%); }
-            }
-
             .power-up-icon-container {
-                font-size: 40px;
+                font-size: 24px;
                 line-height: 1;
-                animation: float 2s ease-in-out infinite;
                 flex-shrink: 0;
-                filter: drop-shadow(0 0 8px var(--glow-color));
-            }
-
-            @keyframes float {
-                0%, 100% { transform: translateY(0px); }
-                50% { transform: translateY(-5px); }
-            }
-
-            .power-up-details {
-                flex: 1;
-                min-width: 0;
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-            }
-
-            .power-up-name {
-                font-family: Arial, sans-serif;
-                font-size: 13px;
-                font-weight: bold;
-                color: #FFFFFF;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-            }
-
-            .power-up-timer-display {
-                display: flex;
-                align-items: center;
-                gap: 6px;
+                filter: drop-shadow(0 0 4px var(--glow-color));
             }
 
             .power-up-time-text {
                 font-family: 'Courier New', monospace;
-                font-size: 18px;
+                font-size: 11px;
                 font-weight: bold;
                 color: var(--timer-color);
                 text-shadow:
-                    0 0 8px var(--glow-color),
-                    0 2px 4px rgba(0, 0, 0, 0.8);
-                min-width: 50px;
+                    0 0 4px var(--glow-color),
+                    0 1px 2px rgba(0, 0, 0, 0.8);
+                white-space: nowrap;
             }
 
             .power-up-time-text.warning {
                 --timer-color: #FFA500;
-                animation: pulse-warning 0.8s ease-in-out infinite;
             }
 
             .power-up-time-text.danger {
                 --timer-color: #FF6B6B;
-                animation: pulse-danger 0.5s ease-in-out infinite;
             }
 
-            @keyframes pulse-warning {
-                0%, 100% { transform: scale(1); opacity: 1; }
-                50% { transform: scale(1.05); opacity: 0.9; }
-            }
-
-            @keyframes pulse-danger {
-                0%, 100% { transform: scale(1); opacity: 1; }
-                50% { transform: scale(1.1); opacity: 0.8; }
-            }
-
-            .power-up-progress-container {
-                flex: 1;
-                height: 6px;
-                background: rgba(51, 51, 51, 0.5);
-                border-radius: 3px;
-                overflow: hidden;
-                position: relative;
-            }
-
-            .power-up-progress-bar {
-                height: 100%;
-                background: linear-gradient(90deg,
-                    var(--progress-color-start) 0%,
-                    var(--progress-color-end) 100%);
-                border-radius: 3px;
-                transition: width 0.1s linear;
-                box-shadow: 0 0 8px var(--glow-color);
-                position: relative;
-            }
-
-            .power-up-progress-bar::after {
-                content: '';
+            .power-up-progress-ring {
+                width: 40px;
+                height: 40px;
                 position: absolute;
                 top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: linear-gradient(90deg,
-                    transparent 0%,
-                    rgba(255, 255, 255, 0.3) 50%,
-                    transparent 100%);
-                animation: progressShine 2s infinite;
+                left: 50%;
+                transform: translateX(-50%);
+                pointer-events: none;
             }
 
-            @keyframes progressShine {
-                0% { transform: translateX(-100%); }
-                100% { transform: translateX(100%); }
+            .power-up-progress-circle {
+                fill: none;
+                stroke: var(--progress-color-start);
+                stroke-width: 2;
+                stroke-dasharray: 113;
+                stroke-dashoffset: 0;
+                transform: rotate(-90deg);
+                transform-origin: 50% 50%;
+                transition: stroke-dashoffset 0.1s linear;
+                filter: drop-shadow(0 0 2px var(--glow-color));
             }
 
             /* Power-up specific colors */
@@ -261,58 +180,56 @@ export class PowerUpDisplay {
             /* Responsive design */
             @media (max-width: 400px) {
                 .power-up-display-container {
-                    top: 60px;
-                    right: 5px;
-                    gap: 6px;
-                    max-width: 260px;
+                    top: 8px;
+                    right: 8px;
+                    gap: 5px;
+                    max-width: 160px;
                 }
 
                 .power-up-card {
-                    padding: 10px;
-                    gap: 10px;
-                    min-width: 180px;
+                    padding: 5px 7px;
+                    min-width: 46px;
+                    border-radius: 8px;
                 }
 
                 .power-up-icon-container {
-                    font-size: 32px;
-                }
-
-                .power-up-name {
-                    font-size: 11px;
+                    font-size: 22px;
                 }
 
                 .power-up-time-text {
-                    font-size: 16px;
-                    min-width: 45px;
+                    font-size: 10px;
                 }
 
-                .power-up-progress-container {
-                    height: 5px;
+                .power-up-progress-ring {
+                    width: 36px;
+                    height: 36px;
                 }
             }
 
             @media (max-width: 350px) {
                 .power-up-display-container {
-                    top: 50px;
-                    max-width: 220px;
+                    top: 6px;
+                    right: 6px;
+                    gap: 4px;
+                    max-width: 140px;
                 }
 
                 .power-up-card {
-                    min-width: 160px;
-                    padding: 8px;
+                    padding: 4px 6px;
+                    min-width: 42px;
                 }
 
                 .power-up-icon-container {
-                    font-size: 28px;
-                }
-
-                .power-up-name {
-                    font-size: 10px;
+                    font-size: 20px;
                 }
 
                 .power-up-time-text {
-                    font-size: 14px;
-                    min-width: 40px;
+                    font-size: 9px;
+                }
+
+                .power-up-progress-ring {
+                    width: 32px;
+                    height: 32px;
                 }
             }
         `;
@@ -366,16 +283,11 @@ export class PowerUpDisplay {
         card.className = 'power-up-card';
         card.setAttribute('data-effect', effectType);
         card.innerHTML = `
+            <svg class="power-up-progress-ring" viewBox="0 0 40 40">
+                <circle class="power-up-progress-circle" cx="20" cy="20" r="18"></circle>
+            </svg>
             <div class="power-up-icon-container">${config.icon || '✨'}</div>
-            <div class="power-up-details">
-                <div class="power-up-name">${i18n.t(config.nameKey)}</div>
-                <div class="power-up-timer-display">
-                    <div class="power-up-time-text">5.0s</div>
-                    <div class="power-up-progress-container">
-                        <div class="power-up-progress-bar" style="width: 100%"></div>
-                    </div>
-                </div>
-            </div>
+            <div class="power-up-time-text">5s</div>
         `;
         return card;
     }
@@ -390,12 +302,12 @@ export class PowerUpDisplay {
 
         const remaining = Math.max(0, powerUp.endTime - Date.now());
         const progress = remaining / powerUp.duration;
-        const seconds = (remaining / 1000).toFixed(1);
+        const seconds = Math.ceil(remaining / 1000);
 
         const timeElement = powerUp.element.querySelector('.power-up-time-text');
-        const progressBar = powerUp.element.querySelector('.power-up-progress-bar');
+        const progressCircle = powerUp.element.querySelector('.power-up-progress-circle');
 
-        // Update time
+        // Update time (whole seconds only for compact display)
         timeElement.textContent = seconds + 's';
 
         // Update state classes
@@ -406,8 +318,9 @@ export class PowerUpDisplay {
             timeElement.classList.add('warning');
         }
 
-        // Update progress bar
-        progressBar.style.width = (progress * 100) + '%';
+        // Update circular progress (113 is the circumference of r=18 circle)
+        const offset = 113 * (1 - progress);
+        progressCircle.style.strokeDashoffset = offset;
     }
 
     /**
