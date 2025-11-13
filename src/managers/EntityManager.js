@@ -142,6 +142,16 @@ export class EntityManager {
     releaseItem(item) {
         if (!item) return;
 
+        // Clean up temporary properties before releasing
+        if (item._savedSpeed !== undefined) {
+            delete item._savedSpeed;
+        }
+
+        // Force speed to 0 to prevent stuck items
+        if (item.speed !== undefined) {
+            item.speed = 0;
+        }
+
         // Ensure item is removed from stage
         try {
             if (item.container && item.container.parent) {

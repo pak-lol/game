@@ -278,26 +278,43 @@ export class PowerUpEffectManager {
     }
 
     clearAllChimke() {
-        // Use EntityManager for proper cleanup instead of direct manipulation
-        const clearedCount = this.game.entityManager.removeItemsBy(item => {
+        // Get list of chimke items to remove
+        const itemsToRemove = [];
+
+        for (const item of this.game.fallingItems) {
             // Extra validation to ensure item is valid
             if (!item || !item.getConfig || !item.isGameOver || !item.getPosition) {
                 console.warn('[PowerUpEffects] Invalid item encountered, skipping');
-                return false;
+                continue;
             }
 
             if (item.isGameOver()) {
-                const position = item.getPosition();
-                const config = item.getConfig();
-
-                // Create particle effect before removal (if valid config)
-                if (config && config.particleColor) {
-                    this.game.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
-                }
-
-                return true; // Mark for removal
+                itemsToRemove.push(item);
             }
-            return false;
+        }
+
+        // Remove items and create effects
+        for (const item of itemsToRemove) {
+            const position = item.getPosition();
+            const config = item.getConfig();
+
+            // Clean up any temporary properties before removal
+            if (item._savedSpeed !== undefined) {
+                delete item._savedSpeed;
+            }
+
+            // Ensure item is fully stopped
+            item.speed = 0;
+
+            // Create particle effect (if valid config)
+            if (config && config.particleColor) {
+                this.game.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+            }
+        }
+
+        // Now remove all marked items using EntityManager
+        const clearedCount = this.game.entityManager.removeItemsBy(item => {
+            return itemsToRemove.includes(item);
         });
 
         console.log(`[PowerUpEffects] Cleared ${clearedCount} chimke items`);

@@ -228,6 +228,11 @@ export class FallingItem {
         this.swingSpeed = 0;
         this.swingAmount = 0;
 
+        // Clean up any temporary properties (from freeze effect, etc.)
+        if (this._savedSpeed !== undefined) {
+            delete this._savedSpeed;
+        }
+
         // Clear references (will be set in init)
         this.itemConfig = null;
         this.type = null;
