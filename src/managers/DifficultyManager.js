@@ -6,9 +6,9 @@ import { GAME_CONFIG, DIFFICULTY_CONFIG } from '../config.js';
  */
 export class DifficultyManager {
     constructor() {
-        this.currentSpeedMultiplier = 1.0;
+        this.baseSpeedMultiplier = 1.0; // Base difficulty speed (unaffected by power-ups)
+        this.currentSpeedMultiplier = 1.0; // Current effective speed (may be modified by power-ups)
         this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
-        this.baseSpeedMultiplier = 1.0; // Used when power-ups are active
     }
 
     /**
@@ -16,14 +16,17 @@ export class DifficultyManager {
      * @returns {Object} New difficulty values
      */
     increaseDifficulty() {
-        const oldSpeed = this.currentSpeedMultiplier;
+        const oldSpeed = this.baseSpeedMultiplier;
         const oldInterval = this.currentSpawnInterval;
 
-        // Increase speed multiplier
-        this.currentSpeedMultiplier = Math.min(
-            this.currentSpeedMultiplier + DIFFICULTY_CONFIG.speedIncreasePerScore,
+        // Increase base speed multiplier
+        this.baseSpeedMultiplier = Math.min(
+            this.baseSpeedMultiplier + DIFFICULTY_CONFIG.speedIncreasePerScore,
             DIFFICULTY_CONFIG.maxSpeedMultiplier
         );
+
+        // Update current speed if no power-ups are affecting it
+        this.currentSpeedMultiplier = this.baseSpeedMultiplier;
 
         // Decrease spawn interval (spawn faster)
         this.currentSpawnInterval = Math.max(
@@ -32,7 +35,7 @@ export class DifficultyManager {
         );
 
         console.log(
-            `[Difficulty] Speed: ${oldSpeed.toFixed(2)}x -> ${this.currentSpeedMultiplier.toFixed(2)}x | ` +
+            `[Difficulty] Base Speed: ${oldSpeed.toFixed(2)}x -> ${this.baseSpeedMultiplier.toFixed(2)}x | ` +
             `Spawn: ${oldInterval} -> ${this.currentSpawnInterval}`
         );
 
@@ -43,7 +46,7 @@ export class DifficultyManager {
     }
 
     /**
-     * Set speed multiplier (used by power-ups)
+     * Set current speed multiplier (used by power-ups)
      * @param {number} multiplier
      */
     setSpeedMultiplier(multiplier) {
@@ -51,7 +54,15 @@ export class DifficultyManager {
     }
 
     /**
-     * Get current speed multiplier
+     * Get base speed multiplier (difficulty-based, unaffected by power-ups)
+     * @returns {number}
+     */
+    getBaseSpeedMultiplier() {
+        return this.baseSpeedMultiplier;
+    }
+
+    /**
+     * Get current speed multiplier (may be affected by power-ups)
      * @returns {number}
      */
     getSpeedMultiplier() {
@@ -70,9 +81,9 @@ export class DifficultyManager {
      * Reset to initial difficulty
      */
     reset() {
+        this.baseSpeedMultiplier = 1.0;
         this.currentSpeedMultiplier = 1.0;
         this.currentSpawnInterval = GAME_CONFIG.spawnInterval;
-        this.baseSpeedMultiplier = 1.0;
 
         console.log('[Difficulty] Reset to initial values');
     }
@@ -83,7 +94,8 @@ export class DifficultyManager {
      */
     getStats() {
         return {
-            speedMultiplier: this.currentSpeedMultiplier,
+            baseSpeedMultiplier: this.baseSpeedMultiplier,
+            currentSpeedMultiplier: this.currentSpeedMultiplier,
             spawnInterval: this.currentSpawnInterval,
             maxSpeed: DIFFICULTY_CONFIG.maxSpeedMultiplier,
             minSpawnInterval: DIFFICULTY_CONFIG.minSpawnInterval

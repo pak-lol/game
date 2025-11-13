@@ -114,7 +114,7 @@ export const ITEM_CONFIG = {
 };
 
 export const DIFFICULTY_CONFIG = {
-    speedIncreasePerScore: 0.1, // Speed increase per point scored
+    speedIncreasePerScore: 0.05, // Speed increase per point scored
     maxSpeedMultiplier: 5, // Maximum speed multiplier (5x base speed)
     spawnRateIncrease: 2, // Decrease spawn interval by this amount per score
     minSpawnInterval: 25 // Minimum spawn interval

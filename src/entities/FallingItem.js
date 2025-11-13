@@ -71,11 +71,18 @@ export class FallingItem {
     }
 
     update(delta) {
+        // Safety check: ensure speed is valid
+        if (!isFinite(this.speed) || this.speed < 0) {
+            console.warn('[FallingItem] Invalid speed detected, resetting to default');
+            const baseSpeed = 2.5;
+            this.speed = baseSpeed * (this.speedMultiplier || 1.0);
+        }
+
         this.container.y += this.speed * delta;
-        
+
         // Rotate only the sprite, not the text
         this.sprite.rotation += this.rotationSpeed * delta;
-        
+
         // Swing animation
         this.swingOffset += this.swingSpeed * delta;
         this.container.x += Math.sin(this.swingOffset) * 0.5;
@@ -138,9 +145,20 @@ export class FallingItem {
      * @param {number} newSpeedMultiplier - New speed multiplier
      */
     updateSpeed(newSpeedMultiplier) {
+        // Prevent division by zero or invalid values
+        if (this.speedMultiplier <= 0 || !isFinite(this.speedMultiplier)) {
+            console.warn('[FallingItem] Invalid speedMultiplier, resetting to 1.0');
+            this.speedMultiplier = 1.0;
+        }
+        
         const baseSpeed = this.speed / this.speedMultiplier; // Get base speed
-        this.speedMultiplier = newSpeedMultiplier;
+        this.speedMultiplier = Math.max(0.1, newSpeedMultiplier); // Ensure minimum speed
         this.speed = baseSpeed * this.speedMultiplier; // Apply new multiplier
+        
+        // Ensure speed is never zero or negative
+        if (this.speed <= 0) {
+            this.speed = 0.5; // Minimum fallback speed
+        }
     }
 
     /**
@@ -152,7 +170,9 @@ export class FallingItem {
     init(texture, itemConfig, speedMultiplier = 1.0) {
         this.itemConfig = itemConfig;
         this.type = itemConfig.id;
-        this.speedMultiplier = speedMultiplier;
+
+        // Ensure speed multiplier is valid
+        this.speedMultiplier = Math.max(0.1, speedMultiplier || 1.0);
 
         // Update sprite texture
         this.sprite.texture = texture;
@@ -173,9 +193,10 @@ export class FallingItem {
         this.container.x = Math.random() * (GAME_CONFIG.width - 80) + 40;
         this.container.y = -50;
 
-        // Set movement properties
+        // Set movement properties with safety checks
         const baseSpeed = Math.random() * (ITEM_CONFIG.baseMaxSpeed - ITEM_CONFIG.baseMinSpeed) + ITEM_CONFIG.baseMinSpeed;
-        this.speed = baseSpeed * this.speedMultiplier;
+        this.speed = Math.max(0.5, baseSpeed * this.speedMultiplier); // Ensure minimum speed
+
         this.sprite.rotation = Math.random() * Math.PI * 2;
         this.rotationSpeed = Math.random() * (ITEM_CONFIG.maxRotationSpeed - ITEM_CONFIG.minRotationSpeed) + ITEM_CONFIG.minRotationSpeed;
 

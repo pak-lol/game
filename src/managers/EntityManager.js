@@ -48,10 +48,25 @@ export class EntityManager {
 
         for (let i = this.fallingItems.length - 1; i >= 0; i--) {
             const item = this.fallingItems[i];
-            if (!item || !item.update) continue;
 
-            // Update item
-            item.update(delta);
+            // Extra validation - skip invalid items
+            if (!item || !item.update || !item.container) {
+                console.warn('[EntityManager] Invalid item at index', i, '- removing');
+                this.fallingItems.splice(i, 1);
+                removedCount++;
+                continue;
+            }
+
+            // Update item with error handling
+            try {
+                item.update(delta);
+            } catch (error) {
+                console.error('[EntityManager] Error updating item:', error);
+                this.releaseItem(item);
+                this.fallingItems.splice(i, 1);
+                removedCount++;
+                continue;
+            }
 
             // Check collision
             if (collisionCallback && collisionCallback(item, i)) {
@@ -125,10 +140,24 @@ export class EntityManager {
      * @param {FallingItem} item - Item to release
      */
     releaseItem(item) {
+        if (!item) return;
+
+        // Ensure item is removed from stage
+        try {
+            if (item.container && item.container.parent) {
+                item.container.parent.removeChild(item.container);
+            }
+        } catch (error) {
+            console.warn('[EntityManager] Error removing item from stage:', error);
+        }
+
+        // Release to pool or destroy
         if (this.itemPool) {
             this.itemPool.release(item);
         } else {
-            item.removeFromStage(this.game.app.stage);
+            if (item.removeFromStage) {
+                item.removeFromStage(this.game.app.stage);
+            }
             if (item.destroy) {
                 item.destroy();
             }

@@ -12,7 +12,7 @@ import { CollisionSystem } from './systems/CollisionSystem.js';
 import { ParticleSystem } from './systems/ParticleSystem.js';
 import { ScoreDisplay } from './ui/overlays/ScoreDisplay.js';
 import { SpeedDisplay } from './ui/overlays/SpeedDisplay.js';
-import { PowerUpTimer } from './ui/overlays/PowerUpTimer.js';
+import { PowerUpDisplay } from './ui/overlays/PowerUpDisplay.js';
 import { ScorePopup } from './ui/overlays/ScorePopup.js';
 import { ConnectionStatus } from './ui/overlays/ConnectionStatus.js';
 import { i18n } from './utils/i18n.js';
@@ -70,7 +70,7 @@ export class Game {
         this.player = null;
         this.scoreDisplay = null;
         this.speedDisplay = null;
-        this.powerUpTimer = null;
+        this.powerUpDisplay = null;
         this.connectionStatus = null;
 
         // Delegated to EntityManager
@@ -361,10 +361,7 @@ export class Game {
                 this.speedDisplay.updatePosition();
             }
 
-            // Update power-up timer position if it exists
-            if (this.powerUpTimer) {
-                this.powerUpTimer.updatePosition();
-            }
+            // PowerUpDisplay is responsive via CSS, no manual update needed
 
             // Update falling items positions proportionally
             if (this.fallingItems.length > 0) {
@@ -426,7 +423,7 @@ export class Game {
         this.createPlayer();
         this.createScoreDisplay();
         this.createSpeedDisplay();
-        this.createPowerUpTimer();
+        this.createPowerUpDisplay();
 
         // Remove old game loop if it exists
         if (this.gameLoopBound) {
@@ -482,9 +479,15 @@ export class Game {
         this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
     }
 
-    createPowerUpTimer() {
-        this.powerUpTimer = new PowerUpTimer();
-        this.powerUpTimer.addToStage(this.app.stage);
+    createPowerUpDisplay() {
+        // Only create if it doesn't exist (persists across game restarts)
+        if (!this.powerUpDisplay) {
+            this.powerUpDisplay = new PowerUpDisplay();
+            this.powerUpDisplay.addToStage(this.app.stage);
+            console.log('[Game] PowerUpDisplay created');
+        } else {
+            console.log('[Game] PowerUpDisplay already exists, reusing');
+        }
     }
 
     /**
@@ -492,43 +495,53 @@ export class Game {
      * Uses the new configuration system for easy extensibility
      */
     spawnFallingItem() {
-        // Try to spawn a power-up first
-        const powerUp = configManager.getRandomPowerup();
+        try {
+            // Try to spawn a power-up first
+            const powerUp = configManager.getRandomPowerup();
 
-        let itemConfig;
-        let texture;
+            let itemConfig;
+            let texture;
 
-        if (powerUp) {
-            // Spawn power-up
-            itemConfig = powerUp;
-            texture = this.assetLoader.getTexture(powerUp.texture);
-        } else {
-            // Spawn regular item based on rarity weights
-            itemConfig = configManager.getRandomItem();
-
-            // If chimke block is active and we rolled a game-over item (chimke),
-            // keep re-rolling until we get a non-game-over item
-            let attempts = 0;
-            while (this.chimkeBlockActive && itemConfig.gameOver && attempts < 10) {
+            if (powerUp) {
+                // Spawn power-up
+                itemConfig = powerUp;
+                texture = this.assetLoader.getTexture(powerUp.texture);
+            } else {
+                // Spawn regular item based on rarity weights
                 itemConfig = configManager.getRandomItem();
-                attempts++;
+
+                // If chimke block is active and we rolled a game-over item (chimke),
+                // keep re-rolling until we get a non-game-over item
+                let attempts = 0;
+                while (this.chimkeBlockActive && itemConfig.gameOver && attempts < 10) {
+                    itemConfig = configManager.getRandomItem();
+                    attempts++;
+                }
+
+                // If we still got a game-over item after 10 attempts (unlikely),
+                // just don't spawn anything this cycle
+                if (this.chimkeBlockActive && itemConfig.gameOver) {
+                    console.log('[Game] Chimke block active - skipping chimke spawn');
+                    return;
+                }
+
+                texture = this.assetLoader.getTexture(itemConfig.texture);
             }
 
-            // If we still got a game-over item after 10 attempts (unlikely),
-            // just don't spawn anything this cycle
-            if (this.chimkeBlockActive && itemConfig.gameOver) {
-                console.log('[Game] Chimke block active - skipping chimke spawn');
+            // Validate texture exists
+            if (!texture) {
+                console.error(`[Game] Missing texture for item: ${itemConfig.id}`);
                 return;
             }
 
-            texture = this.assetLoader.getTexture(itemConfig.texture);
+            // Use EntityManager to spawn
+            const item = this.entityManager.spawnItem(itemConfig, texture, this.currentSpeedMultiplier);
+
+            // Keep backward compatibility
+            this.fallingItems = this.entityManager.getAllItems();
+        } catch (error) {
+            console.error('[Game] Error spawning falling item:', error);
         }
-
-        // Use EntityManager to spawn
-        const item = this.entityManager.spawnItem(itemConfig, texture, this.currentSpeedMultiplier);
-
-        // Keep backward compatibility
-        this.fallingItems = this.entityManager.getAllItems();
     }
 
     /**
@@ -541,20 +554,22 @@ export class Game {
             return;
         }
 
+        // Normalize delta - PixiJS provides deltaTime (frame-based) and deltaMS (milliseconds)
+        const deltaTime = delta.deltaTime || delta; // Frame-based delta
+        const deltaMS = delta.deltaMS || (deltaTime * 16.67); // Convert to milliseconds if needed
+
         // Animate speed display
         if (this.speedDisplay) {
-            this.speedDisplay.animate(delta.deltaTime);
+            this.speedDisplay.animate(deltaTime);
         }
 
-        // Update power-up timer UI
-        if (this.powerUpTimer && this.powerUpTimer.isActive()) {
-            // Use deltaMS for accurate millisecond timing
-            this.powerUpTimer.update(delta.deltaMS);
-            // Note: Effect expiry is now handled by PowerUpEffectManager
+        // Update power-up display UI
+        if (this.powerUpDisplay) {
+            this.powerUpDisplay.update(Date.now());
         }
 
         // Add 1 score per second (passive scoring)
-        this.scoreTimer += delta.deltaMS; // deltaMS is in milliseconds
+        this.scoreTimer += deltaMS; // deltaMS is in milliseconds
         if (this.scoreTimer >= 1000) { // 1000ms = 1 second
             const passiveScore = Math.floor(1 * this.currentScoreMultiplier);
             this.scoreDisplay.add(passiveScore);
@@ -562,7 +577,7 @@ export class Game {
         }
 
         // Spawn falling items
-        this.spawnTimer += delta.deltaTime;
+        this.spawnTimer += deltaTime;
         if (this.spawnTimer > this.currentSpawnInterval) {
             this.spawnFallingItem();
             this.spawnTimer = 0;
@@ -574,7 +589,7 @@ export class Game {
         }
 
         // Update falling items using EntityManager
-        this.entityManager.updateItems(delta.deltaTime, (item, index) => {
+        this.entityManager.updateItems(deltaTime, (item, index) => {
             // Check collision with player
             if (this.collisionSystem.checkCollision(item, this.player)) {
                 this.handleItemCatch(item, index);
@@ -584,7 +599,7 @@ export class Game {
         });
 
         // Update score popups using EntityManager
-        this.entityManager.updatePopups(delta.deltaTime);
+        this.entityManager.updatePopups(deltaTime);
 
         // Sync backward compatibility arrays
         this.fallingItems = this.entityManager.getAllItems();
@@ -596,72 +611,76 @@ export class Game {
      * Now uses configuration system for easy extensibility
      */
     handleItemCatch(item, index) {
-        if (!item || !this.scoreDisplay) return;
+        try {
+            if (!item || !this.scoreDisplay) return;
 
-        const position = item.getPosition();
-        const config = item.getConfig();
+            const position = item.getPosition();
+            const config = item.getConfig();
 
-        // Check if this is a power-up
-        if (config.effectType) {
-            this.handlePowerUpCatch(item, position);
-        }
-        // Check if this is a game-over item (chimke)
-        else if (item.isGameOver()) {
-            // Check invincibility
-            if (this.invincible) {
-                console.log('[Game] Invincible! Chimke has no effect');
+            // Check if this is a power-up
+            if (config.effectType) {
+                this.handlePowerUpCatch(item, position);
+            }
+            // Check if this is a game-over item (chimke)
+            else if (item.isGameOver()) {
+                // Check invincibility
+                if (this.invincible) {
+                    console.log('[Game] Invincible! Chimke has no effect');
 
-                // Still create particle effect
-                this.particleSystem.createCatchEffect(position.x, position.y, 0xFFD700);
+                    // Still create particle effect
+                    this.particleSystem.createCatchEffect(position.x, position.y, 0xFFD700);
 
-                // Haptic feedback
-                if (this.telegramService) {
-                    this.telegramService.hapticFeedback('light');
+                    // Haptic feedback
+                    if (this.telegramService) {
+                        this.telegramService.hapticFeedback('light');
+                    }
+
+                    // Don't call gameOver()
+                } else {
+                    // Not invincible - game over
+                    this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+
+                    // Haptic feedback
+                    if (this.telegramService && config.haptic) {
+                        this.telegramService.hapticFeedback(config.haptic);
+                    }
+
+                    this.gameOver();
                 }
-
-                // Don't call gameOver()
-            } else {
-                // Not invincible - game over
+            }
+            // Handle scoreable items
+            else if (item.isScoreable()) {
+                const scoreValue = item.getScoreValue();
+                const multipliedScore = Math.floor(scoreValue * this.currentScoreMultiplier);
+                this.scoreDisplay.add(multipliedScore);
                 this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+
+                // Create beautiful score popup with multiplied score
+                this.createScorePopup(position.x, position.y, multipliedScore, config.color, i18n.t(config.nameKey));
 
                 // Haptic feedback
                 if (this.telegramService && config.haptic) {
                     this.telegramService.hapticFeedback(config.haptic);
                 }
 
-                this.gameOver();
-            }
-        }
-        // Handle scoreable items
-        else if (item.isScoreable()) {
-            const scoreValue = item.getScoreValue();
-            const multipliedScore = Math.floor(scoreValue * this.currentScoreMultiplier);
-            this.scoreDisplay.add(multipliedScore);
-            this.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+                // Emit item caught event
+                eventBus.emit(GameEvents.ITEM_CAUGHT, {
+                    item,
+                    config,
+                    position,
+                    score: multipliedScore,
+                    baseScore: scoreValue,
+                    multiplier: this.currentScoreMultiplier
+                });
 
-            // Create beautiful score popup with multiplied score
-            this.createScorePopup(position.x, position.y, multipliedScore, config.color, i18n.t(config.nameKey));
-
-            // Haptic feedback
-            if (this.telegramService && config.haptic) {
-                this.telegramService.hapticFeedback(config.haptic);
+                // Increase difficulty
+                this.increaseDifficulty();
             }
 
-            // Emit item caught event
-            eventBus.emit(GameEvents.ITEM_CAUGHT, {
-                item,
-                config,
-                position,
-                score: multipliedScore,
-                baseScore: scoreValue,
-                multiplier: this.currentScoreMultiplier
-            });
-
-            // Increase difficulty
-            this.increaseDifficulty();
+            // Note: Item removal (from stage and array) is handled by EntityManager
+        } catch (error) {
+            console.error('[Game] Error handling item catch:', error);
         }
-
-        // Note: Item removal (from stage and array) is handled by EntityManager
     }
 
     /**
@@ -726,14 +745,21 @@ export class Game {
     increaseDifficulty() {
         const newDifficulty = this.difficultyManager.increaseDifficulty();
 
-        // Sync to local variables for backward compatibility
-        this.currentSpeedMultiplier = newDifficulty.speedMultiplier;
-        this.currentSpawnInterval = newDifficulty.spawnInterval;
-
-        // Update speed display
-        if (this.speedDisplay) {
-            this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
+        // Only update current speed if no power-up is active
+        if (!this.powerUpManager.isEffectActive('speed_multiplier')) {
+            this.currentSpeedMultiplier = newDifficulty.speedMultiplier;
+            
+            // Update all existing items
+            this.updateFallingItemsSpeeds();
+            
+            // Update speed display
+            if (this.speedDisplay) {
+                this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
+            }
         }
+        
+        // Always update spawn interval
+        this.currentSpawnInterval = newDifficulty.spawnInterval;
     }
 
     /**
@@ -760,9 +786,9 @@ export class Game {
             this.powerUpManager.clearAll();
         }
 
-        // Stop power-up timer immediately
-        if (this.powerUpTimer) {
-            this.powerUpTimer.stop();
+        // Clear power-up display
+        if (this.powerUpDisplay) {
+            this.powerUpDisplay.clearAll();
         }
 
         // Stop all falling items
@@ -862,11 +888,9 @@ export class Game {
         // Clear score popups
         this.clearScorePopups();
 
-        // Destroy powerUpTimer HTML element
-        if (this.powerUpTimer) {
-            this.powerUpTimer.stop();
-            this.powerUpTimer.removeFromStage();
-            this.powerUpTimer = null;
+        // Clear power-up display but don't destroy it (will be reused)
+        if (this.powerUpDisplay) {
+            this.powerUpDisplay.clearAll();
         }
 
         // Clear stage
@@ -879,10 +903,16 @@ export class Game {
 
         // Reset references
         this.background = null;
-        this.player = null;
+
+        // Properly destroy player
+        if (this.player) {
+            this.player.destroy();
+            this.player = null;
+        }
+
         this.scoreDisplay = null;
         this.speedDisplay = null;
-        // Don't destroy connectionStatus - it persists across games
+        // Don't destroy powerUpDisplay or connectionStatus - they persist across games
     }
 
     /**
@@ -912,7 +942,8 @@ export class Game {
 
         // Reset speed display (will be created on start)
         this.speedDisplay = null;
-        this.powerUpTimer = null;
+
+        // Don't reset powerUpDisplay - it persists and is reused
 
         // Reset power-up flags
         this.chimkeBlockActive = false;
@@ -956,6 +987,11 @@ export class Game {
 
         if (this.audioManager) {
             this.audioManager.destroy();
+        }
+
+        // Cleanup WebSocket service
+        if (wsService) {
+            wsService.disconnect();
         }
 
         // Destroy new managers

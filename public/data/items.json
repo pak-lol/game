@@ -8,7 +8,7 @@
     "assetPath": "/weed-leaf-brown.svg",
     "scoreValue": 0,
     "gameOver": true,
-    "rarity": 60,
+    "rarity": 70,
     "color": "#FF6B6B",
     "particleColor": "#FF6B6B",
     "haptic": "error"
@@ -22,7 +22,7 @@
     "assetPath": "/weed-leaf.svg",
     "scoreValue": 3,
     "gameOver": false,
-    "rarity": 30,
+    "rarity": 20,
     "color": "#00FF00",
     "particleColor": "#4CAF50",
     "haptic": "light"

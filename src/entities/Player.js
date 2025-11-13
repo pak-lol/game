@@ -10,6 +10,12 @@ export class Player {
         const scale = Math.min(PLAYER_CONFIG.scale, GAME_CONFIG.width / 1000);
         this.sprite.scale.set(scale);
 
+        // Store bound methods for cleanup
+        this.boundHandleMove = null;
+        this.boundHandleTouch = null;
+        this.boundHandleTouchEnd = null;
+        this.canvas = null;
+
         this.updateBounds();
     }
 
@@ -19,13 +25,20 @@ export class Player {
     }
 
     setupControls(canvas) {
+        this.canvas = canvas;
+        
+        // Create bound methods for cleanup
+        this.boundHandleMove = (e) => this.handleMove(e, canvas);
+        this.boundHandleTouch = (e) => this.handleTouch(e, canvas);
+        this.boundHandleTouchEnd = (e) => e.preventDefault();
+
         // Mouse controls
-        canvas.addEventListener('mousemove', (e) => this.handleMove(e, canvas));
+        canvas.addEventListener('mousemove', this.boundHandleMove);
         
         // Touch controls with better mobile support
-        canvas.addEventListener('touchstart', (e) => this.handleTouch(e, canvas), { passive: false });
-        canvas.addEventListener('touchmove', (e) => this.handleTouch(e, canvas), { passive: false });
-        canvas.addEventListener('touchend', (e) => e.preventDefault(), { passive: false });
+        canvas.addEventListener('touchstart', this.boundHandleTouch, { passive: false });
+        canvas.addEventListener('touchmove', this.boundHandleTouch, { passive: false });
+        canvas.addEventListener('touchend', this.boundHandleTouchEnd, { passive: false });
     }
 
     handleMove(e, canvas) {
@@ -59,5 +72,29 @@ export class Player {
 
     addToStage(stage) {
         stage.addChild(this.sprite);
+    }
+
+    /**
+     * Clean up event listeners to prevent memory leaks
+     */
+    destroy() {
+        if (this.canvas && this.boundHandleMove) {
+            this.canvas.removeEventListener('mousemove', this.boundHandleMove);
+            this.canvas.removeEventListener('touchstart', this.boundHandleTouch);
+            this.canvas.removeEventListener('touchmove', this.boundHandleTouch);
+            this.canvas.removeEventListener('touchend', this.boundHandleTouchEnd);
+        }
+
+        // Clean up references
+        this.boundHandleMove = null;
+        this.boundHandleTouch = null;
+        this.boundHandleTouchEnd = null;
+        this.canvas = null;
+
+        // Destroy sprite
+        if (this.sprite) {
+            this.sprite.destroy();
+            this.sprite = null;
+        }
     }
 }

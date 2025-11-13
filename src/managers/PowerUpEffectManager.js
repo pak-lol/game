@@ -60,6 +60,13 @@ export class PowerUpEffectManager {
         const effectType = config.effectType;
         const handler = this.effectHandlers.get(effectType);
 
+        console.log('[PowerUpEffects] applyEffect called:', {
+            effectType,
+            hasHandler: !!handler,
+            hasPowerUpDisplay: !!this.game.powerUpDisplay,
+            config
+        });
+
         if (!handler) {
             console.error(`[PowerUpEffects] Unknown effect type: ${effectType}`);
             return false;
@@ -73,9 +80,12 @@ export class PowerUpEffectManager {
             console.log(`[PowerUpEffects] ${effectType} already active - restarting timer`);
             existingEffect.endTime = Date.now() + config.duration;
 
-            // Update timer UI
-            if (this.game.powerUpTimer) {
-                this.game.powerUpTimer.start(config.id, config.duration);
+            // Update display UI (new multi-power-up display)
+            if (this.game.powerUpDisplay) {
+                console.log('[PowerUpEffects] Updating existing power-up in display');
+                this.game.powerUpDisplay.addPowerUp(effectType, config, config.duration);
+            } else {
+                console.warn('[PowerUpEffects] powerUpDisplay not available!');
             }
 
             return true;
@@ -94,9 +104,12 @@ export class PowerUpEffectManager {
                 endTime: Date.now() + config.duration
             });
 
-            // Start timer UI
-            if (this.game.powerUpTimer) {
-                this.game.powerUpTimer.start(config.id, config.duration);
+            // Add to display UI (new multi-power-up display)
+            if (this.game.powerUpDisplay) {
+                console.log('[PowerUpEffects] Adding power-up to display');
+                this.game.powerUpDisplay.addPowerUp(effectType, config, config.duration);
+            } else {
+                console.warn('[PowerUpEffects] powerUpDisplay not available!');
             }
 
             return true;
@@ -145,6 +158,11 @@ export class PowerUpEffectManager {
             }
         }
 
+        // Remove from display
+        if (this.game.powerUpDisplay) {
+            this.game.powerUpDisplay.removePowerUp(effectType);
+        }
+
         this.activeEffects.delete(effectType);
     }
 
@@ -164,6 +182,11 @@ export class PowerUpEffectManager {
         for (const effectType of this.activeEffects.keys()) {
             this.removeEffect(effectType);
         }
+
+        // Clear display
+        if (this.game.powerUpDisplay) {
+            this.game.powerUpDisplay.clearAll();
+        }
     }
 
     // ============================================================
@@ -174,11 +197,21 @@ export class PowerUpEffectManager {
      * Speed Multiplier Effect - Slows down falling items
      */
     applySpeedMultiplier(config) {
-        // Save current speed
-        this.savedStates.speedMultiplier = this.game.currentSpeedMultiplier;
+        // Save current base speed from difficulty manager
+        if (this.game.difficultyManager) {
+            this.savedStates.speedMultiplier = this.game.difficultyManager.getBaseSpeedMultiplier();
+        } else {
+            this.savedStates.speedMultiplier = this.game.currentSpeedMultiplier;
+        }
 
-        // Apply slowdown
-        this.game.currentSpeedMultiplier = this.game.currentSpeedMultiplier * config.effectValue;
+        // Apply slowdown to base difficulty speed
+        const newSpeed = this.savedStates.speedMultiplier * config.effectValue;
+        this.game.currentSpeedMultiplier = newSpeed;
+        
+        // Update difficulty manager's current speed
+        if (this.game.difficultyManager) {
+            this.game.difficultyManager.setSpeedMultiplier(newSpeed);
+        }
 
         // Update all existing items
         this.game.updateFallingItemsSpeeds();
@@ -192,7 +225,15 @@ export class PowerUpEffectManager {
     }
 
     removeSpeedMultiplier() {
-        this.game.currentSpeedMultiplier = this.savedStates.speedMultiplier;
+        // Restore to current base difficulty speed (which may have increased during power-up)
+        if (this.game.difficultyManager) {
+            const currentBaseSpeed = this.game.difficultyManager.getBaseSpeedMultiplier();
+            this.game.currentSpeedMultiplier = currentBaseSpeed;
+            this.game.difficultyManager.setSpeedMultiplier(currentBaseSpeed);
+        } else {
+            this.game.currentSpeedMultiplier = this.savedStates.speedMultiplier;
+        }
+        
         this.game.updateFallingItemsSpeeds();
 
         if (this.game.speedDisplay) {
@@ -231,28 +272,33 @@ export class PowerUpEffectManager {
     }
 
     removeClearChimke() {
-        this.game.chimkeBlockActive = this.savedStates.chimkeBlocked;
-        console.log(`[PowerUpEffects] Chimke spawning restored`);
+        // Always restore to false (default state) - chimke should spawn after effect ends
+        this.game.chimkeBlockActive = false;
+        console.log(`[PowerUpEffects] Chimke spawning restored (chimkeBlockActive = false)`);
     }
 
     clearAllChimke() {
-        let clearedCount = 0;
+        // Use EntityManager for proper cleanup instead of direct manipulation
+        const clearedCount = this.game.entityManager.removeItemsBy(item => {
+            // Extra validation to ensure item is valid
+            if (!item || !item.getConfig || !item.isGameOver || !item.getPosition) {
+                console.warn('[PowerUpEffects] Invalid item encountered, skipping');
+                return false;
+            }
 
-        for (let i = this.game.fallingItems.length - 1; i >= 0; i--) {
-            const item = this.game.fallingItems[i];
-            if (item && item.isGameOver()) {
+            if (item.isGameOver()) {
                 const position = item.getPosition();
                 const config = item.getConfig();
 
-                // Particle effect
-                this.game.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+                // Create particle effect before removal (if valid config)
+                if (config && config.particleColor) {
+                    this.game.particleSystem.createCatchEffect(position.x, position.y, config.particleColor);
+                }
 
-                // Remove item
-                item.removeFromStage(this.game.app.stage);
-                this.game.fallingItems.splice(i, 1);
-                clearedCount++;
+                return true; // Mark for removal
             }
-        }
+            return false;
+        });
 
         console.log(`[PowerUpEffects] Cleared ${clearedCount} chimke items`);
     }
@@ -329,11 +375,22 @@ export class PowerUpEffectManager {
     removeFreezeItems() {
         this.game.itemsFrozen = false;
 
-        // Restore speeds
+        // Restore speeds with safety checks
         for (const item of this.game.fallingItems) {
             if (item && item._savedSpeed !== undefined) {
-                item.speed = item._savedSpeed;
+                // Ensure saved speed is valid
+                if (item._savedSpeed > 0 && isFinite(item._savedSpeed)) {
+                    item.speed = item._savedSpeed;
+                } else {
+                    // Fallback to current speed multiplier if saved speed is invalid
+                    const baseSpeed = 2.5; // Default base speed
+                    item.speed = baseSpeed * this.game.currentSpeedMultiplier;
+                }
                 delete item._savedSpeed;
+            } else if (item && (item.speed === 0 || !isFinite(item.speed))) {
+                // Fix any items that got stuck with zero speed
+                const baseSpeed = 2.5;
+                item.speed = baseSpeed * this.game.currentSpeedMultiplier;
             }
         }
 
