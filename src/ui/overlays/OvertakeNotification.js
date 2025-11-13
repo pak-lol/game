@@ -21,18 +21,17 @@ export class OvertakeNotification {
         style.textContent = `
             .overtake-notifications-container {
                 position: absolute;
-                top: 150px;
-                left: 50%;
-                transform: translateX(-50%);
+                top: 70px;
+                right: 10px;
                 z-index: 200;
                 pointer-events: none;
                 display: flex;
                 flex-direction: column;
                 gap: 8px;
-                align-items: center;
+                align-items: flex-end;
                 width: auto;
                 max-width: 280px;
-                padding: 0 10px;
+                padding: 0;
                 box-sizing: border-box;
             }
 
@@ -100,7 +99,8 @@ export class OvertakeNotification {
             /* Responsive */
             @media (max-width: 400px) {
                 .overtake-notifications-container {
-                    top: 120px;
+                    top: 60px;
+                    right: 8px;
                     max-width: 240px;
                 }
 
@@ -120,7 +120,8 @@ export class OvertakeNotification {
 
             @media (max-width: 350px) {
                 .overtake-notifications-container {
-                    top: 100px;
+                    top: 54px;
+                    right: 6px;
                     max-width: 200px;
                 }
 

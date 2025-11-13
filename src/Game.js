@@ -11,7 +11,7 @@ import { FallingItem } from './entities/FallingItem.js';
 import { CollisionSystem } from './systems/CollisionSystem.js';
 import { ParticleSystem } from './systems/ParticleSystem.js';
 import { ScoreDisplay } from './ui/overlays/ScoreDisplay.js';
-import { SpeedDisplay } from './ui/overlays/SpeedDisplay.js';
+// import { SpeedDisplay } from './ui/overlays/SpeedDisplay.js'; // Removed - replaced by overtake notifications
 import { PowerUpDisplay } from './ui/overlays/PowerUpDisplay.js';
 import { ScorePopup } from './ui/overlays/ScorePopup.js';
 import { ConnectionStatus } from './ui/overlays/ConnectionStatus.js';
@@ -70,7 +70,7 @@ export class Game {
         // Game entities
         this.player = null;
         this.scoreDisplay = null;
-        this.speedDisplay = null;
+        // this.speedDisplay = null; // Removed - replaced by overtake notifications
         this.powerUpDisplay = null;
         this.overtakeNotification = null;
         this.connectionStatus = null;
@@ -431,12 +431,7 @@ export class Game {
                 this.scoreDisplay.text.y = 10;
             }
 
-            // Update speed display position if it exists
-            if (this.speedDisplay) {
-                this.speedDisplay.updatePosition();
-            }
-
-            // PowerUpDisplay is responsive via CSS, no manual update needed
+            // PowerUpDisplay and OvertakeNotification are responsive via CSS, no manual update needed
 
             // Update falling items positions proportionally
             if (this.fallingItems.length > 0) {
@@ -497,7 +492,7 @@ export class Game {
         this.createBackground();
         this.createPlayer();
         this.createScoreDisplay();
-        this.createSpeedDisplay();
+        // this.createSpeedDisplay(); // Removed - replaced by overtake notifications
         this.createPowerUpDisplay();
 
         // Remove old game loop if it exists
@@ -548,11 +543,9 @@ export class Game {
         this.scoreDisplay.addToStage(this.app.stage);
     }
 
-    createSpeedDisplay() {
-        this.speedDisplay = new SpeedDisplay();
-        this.speedDisplay.addToStage(this.app.stage);
-        this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
-    }
+    // createSpeedDisplay() - REMOVED - replaced by overtake notifications
+    // Speed display was showing "⚡ Greitis: 1.0x" at bottom-left
+    // Now using that space for "Tu aplenkei [username]!" notifications
 
     createPowerUpDisplay() {
         // Only create if it doesn't exist (persists across game restarts)
@@ -632,11 +625,6 @@ export class Game {
         // Normalize delta - PixiJS provides deltaTime (frame-based) and deltaMS (milliseconds)
         const deltaTime = delta.deltaTime || delta; // Frame-based delta
         const deltaMS = delta.deltaMS || (deltaTime * 16.67); // Convert to milliseconds if needed
-
-        // Animate speed display
-        if (this.speedDisplay) {
-            this.speedDisplay.animate(deltaTime);
-        }
 
         // Update power-up display UI
         if (this.powerUpDisplay) {
@@ -832,11 +820,8 @@ export class Game {
             
             // Update all existing items
             this.updateFallingItemsSpeeds();
-            
-            // Update speed display
-            if (this.speedDisplay) {
-                this.speedDisplay.setSpeed(this.currentSpeedMultiplier);
-            }
+
+            // Speed display removed - no UI update needed
         }
         
         // Always update spawn interval
@@ -992,8 +977,7 @@ export class Game {
         }
 
         this.scoreDisplay = null;
-        this.speedDisplay = null;
-        // Don't destroy powerUpDisplay or connectionStatus - they persist across games
+        // Don't destroy powerUpDisplay, overtakeNotification or connectionStatus - they persist across games
     }
 
     /**
@@ -1020,9 +1004,6 @@ export class Game {
 
         // Create new score display
         this.scoreDisplay = new ScoreDisplay();
-
-        // Reset speed display (will be created on start)
-        this.speedDisplay = null;
 
         // Reset leaderboard tracking
         this.lastCheckedScore = 0;

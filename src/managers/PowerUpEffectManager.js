@@ -216,11 +216,6 @@ export class PowerUpEffectManager {
         // Update all existing items
         this.game.updateFallingItemsSpeeds();
 
-        // Update UI
-        if (this.game.speedDisplay) {
-            this.game.speedDisplay.setSpeed(this.game.currentSpeedMultiplier);
-        }
-
         console.log(`[PowerUpEffects] Speed: ${this.savedStates.speedMultiplier.toFixed(2)}x -> ${this.game.currentSpeedMultiplier.toFixed(2)}x`);
     }
 
@@ -235,10 +230,6 @@ export class PowerUpEffectManager {
         }
         
         this.game.updateFallingItemsSpeeds();
-
-        if (this.game.speedDisplay) {
-            this.game.speedDisplay.setSpeed(this.game.currentSpeedMultiplier);
-        }
 
         console.log(`[PowerUpEffects] Speed restored to ${this.game.currentSpeedMultiplier.toFixed(2)}x`);
     }
