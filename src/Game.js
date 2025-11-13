@@ -15,6 +15,7 @@ import { SpeedDisplay } from './ui/overlays/SpeedDisplay.js';
 import { PowerUpDisplay } from './ui/overlays/PowerUpDisplay.js';
 import { ScorePopup } from './ui/overlays/ScorePopup.js';
 import { ConnectionStatus } from './ui/overlays/ConnectionStatus.js';
+import { OvertakeNotification } from './ui/overlays/OvertakeNotification.js';
 import { i18n } from './utils/i18n.js';
 import { GameStateManager, GameState } from './managers/GameStateManager.js';
 import { ScoreService } from './services/ScoreService.js';
@@ -71,7 +72,12 @@ export class Game {
         this.scoreDisplay = null;
         this.speedDisplay = null;
         this.powerUpDisplay = null;
+        this.overtakeNotification = null;
         this.connectionStatus = null;
+
+        // Leaderboard tracking for overtakes
+        this.currentLeaderboard = [];
+        this.lastCheckedScore = 0;
 
         // Delegated to EntityManager
         this.fallingItems = []; // Keep for backward compatibility
@@ -166,6 +172,13 @@ export class Game {
             // Create connection status indicator
             this.connectionStatus = new ConnectionStatus();
             this.connectionStatus.addToStage(this.app.stage);
+
+            // Create overtake notification
+            this.overtakeNotification = new OvertakeNotification();
+            this.overtakeNotification.addToStage(this.app.stage);
+
+            // Load initial leaderboard for overtake tracking
+            this.loadLeaderboardForTracking();
 
             // Setup WebSocket connection state listener
             wsService.onConnectionStateChange((connected) => {
@@ -295,6 +308,68 @@ export class Game {
     }
 
 
+
+    /**
+     * Load leaderboard for tracking overtakes
+     */
+    async loadLeaderboardForTracking() {
+        try {
+            const leaderboard = await this.scoreService.getTopScores(100);
+            this.currentLeaderboard = leaderboard;
+            console.log('[Game] Loaded leaderboard for tracking:', leaderboard.length, 'entries');
+        } catch (error) {
+            console.error('[Game] Error loading leaderboard for tracking:', error);
+            this.currentLeaderboard = [];
+        }
+    }
+
+    /**
+     * Check if player has overtaken anyone
+     * @param {number} currentScore - Current player score
+     */
+    checkForOvertakes(currentScore) {
+        // Only check every 5 points to avoid spam
+        if (currentScore < this.lastCheckedScore + 5) {
+            return;
+        }
+
+        this.lastCheckedScore = currentScore;
+
+        // Find players we just overtook
+        for (const entry of this.currentLeaderboard) {
+            // Skip our own username
+            if (entry.username === this.username) {
+                continue;
+            }
+
+            // Check if we just passed this player
+            const previousScore = currentScore - 5; // Approximate previous score
+            if (previousScore <= entry.score && currentScore > entry.score) {
+                // We overtook this player!
+                const rank = this.calculateRank(currentScore);
+                this.overtakeNotification.show(entry.username, rank);
+                console.log(`[Game] Overtook ${entry.username}! New rank: ${rank}`);
+
+                // Only show one overtake notification at a time
+                break;
+            }
+        }
+    }
+
+    /**
+     * Calculate player's rank based on score
+     * @param {number} score - Player's score
+     * @returns {number} Estimated rank
+     */
+    calculateRank(score) {
+        let rank = 1;
+        for (const entry of this.currentLeaderboard) {
+            if (entry.score > score) {
+                rank++;
+            }
+        }
+        return rank;
+    }
 
     /**
      * Show leaderboard modal
@@ -574,6 +649,9 @@ export class Game {
             const passiveScore = Math.floor(1 * this.currentScoreMultiplier);
             this.scoreDisplay.add(passiveScore);
             this.scoreTimer -= 1000; // Subtract 1 second, keep remainder for precision
+
+            // Check for overtakes
+            this.checkForOvertakes(this.scoreDisplay.score);
         }
 
         // Spawn falling items
@@ -662,6 +740,9 @@ export class Game {
                 if (this.telegramService && config.haptic) {
                     this.telegramService.hapticFeedback(config.haptic);
                 }
+
+                // Check for overtakes
+                this.checkForOvertakes(this.scoreDisplay.score);
 
                 // Emit item caught event
                 eventBus.emit(GameEvents.ITEM_CAUGHT, {
@@ -943,7 +1024,10 @@ export class Game {
         // Reset speed display (will be created on start)
         this.speedDisplay = null;
 
-        // Don't reset powerUpDisplay - it persists and is reused
+        // Reset leaderboard tracking
+        this.lastCheckedScore = 0;
+
+        // Don't reset powerUpDisplay or overtakeNotification - they persist and are reused
 
         // Reset power-up flags
         this.chimkeBlockActive = false;
